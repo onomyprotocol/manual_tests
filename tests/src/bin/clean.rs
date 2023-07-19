@@ -15,7 +15,6 @@ async fn main() -> Result<()> {
     .await?;
     remove_files_in_dir("./tests/logs", &[".log", ".json", ".toml"]).await?;
     remove_files_in_dir("./tests/resources/keyring-test/", &[".address", ".info"]).await?;
-    remove_files_in_dir("./tests/resources/keyring-file/", &[".address", ".info"]).await?;
 
     Ok(())
 }
