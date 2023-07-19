@@ -35,7 +35,7 @@ pub async fn onomyd_setup(daemon_home: &str) -> Result<String> {
     let chain_id = "onomy";
     let global_min_self_delegation = &token18(225.0e3, "");
     sh_cosmovisor("config chain-id", &[chain_id]).await?;
-    sh_cosmovisor("config keyring-backend file", &[]).await?;
+    sh_cosmovisor("config keyring-backend test", &[]).await?;
     sh_cosmovisor_no_dbg("init --overwrite", &[chain_id]).await?;
 
     let genesis_file_path = format!("{daemon_home}/config/genesis.json");
@@ -77,19 +77,15 @@ pub async fn onomyd_setup(daemon_home: &str) -> Result<String> {
 
     set_minimum_gas_price(daemon_home, "1anom").await?;
 
-    // we need the stderr to get the mnemonic
-    let comres = Command::new("cosmovisor run keys add validator", &[])
-        .run_to_completion()
-        .await?;
+    let mnemonic = FileOptions::read_to_string("/testnet_dealer_mnemonic.txt").await?;
+    let comres = Command::new(
+        &format!("{daemon_home}/cosmovisor/current/bin/onomyd keys add validator --recover"),
+        &[],
+    )
+    .run_with_input_to_completion(mnemonic.as_bytes())
+    .await?;
     comres.assert_success()?;
-    let mnemonic = comres
-        .stderr
-        .trim()
-        .lines()
-        .last()
-        .map_add_err(|| "no last line")?
-        .trim()
-        .to_owned();
+
     sh_cosmovisor("add-genesis-account validator", &[&nom(2.0e6)]).await?;
 
     // unconditionally needed for some Arc tests
@@ -122,15 +118,12 @@ pub async fn havend_setup(
     ccvconsumer_state_s: &str,
 ) -> Result<()> {
     sh_cosmovisor("config chain-id", &[chain_id]).await?;
-    sh_cosmovisor("config keyring-backend file", &[]).await?;
+    sh_cosmovisor("config keyring-backend test", &[]).await?;
     sh_cosmovisor_no_dbg("init --overwrite", &[chain_id]).await?;
     let genesis_file_path = format!("{daemon_home}/config/genesis.json");
 
     // read the haven proposal-genesis from neighboring repo
-    let genesis_s = FileOptions::read_to_string(
-        "./../environments/testnet/haven/genesis/proposal-genesis.json",
-    )
-    .await?;
+    let genesis_s = FileOptions::read_to_string("/proposal-genesis.json").await?;
     let mut genesis: Value = serde_json::from_str(&genesis_s)?;
 
     //force_chain_id(daemon_home, &mut genesis, chain_id).await?;
@@ -149,6 +142,15 @@ pub async fn havend_setup(
 
     FileOptions::write_str(&genesis_file_path, &genesis_s).await?;
     FileOptions::write_str(&format!("/logs/{chain_id}_genesis.json"), &genesis_s).await?;
+
+    let mnemonic = FileOptions::read_to_string("/testnet_dealer_mnemonic.txt").await?;
+    let comres = Command::new(
+        &format!("{daemon_home}/cosmovisor/current/bin/havend keys add validator --recover"),
+        &[],
+    )
+    .run_with_input_to_completion(mnemonic.as_bytes())
+    .await?;
+    comres.assert_success()?;
 
     fast_block_times(daemon_home).await?;
     set_minimum_gas_price(daemon_home, "1akudos").await?;
@@ -174,12 +176,6 @@ async fn main() -> Result<()> {
             _ => format!("entry_name \"{s}\" is not recognized").map_add_err(|| ()),
         }
     } else {
-        sh("go build ./cmd/consumer-democracy", &[]).await?;
-        sh(
-            "cp ./consumer-democracy ./tests/dockerfiles/dockerfile_resources/havend",
-            &[],
-        )
-        .await?;
         container_runner(&args).await
     }
 }
@@ -231,20 +227,40 @@ async fn container_runner(args: &Args) -> Result<()> {
                 entrypoint,
                 &["--entry-name", "onomyd"],
             )
-            .volumes(&[(
-                "./tests/resources/keyring-test",
-                "/root/.onomy/keyring-test",
-            )]),
+            .volumes(&[
+                (
+                    "./../testnet_dealer_mnemonic.txt",
+                    "/testnet_dealer_mnemonic.txt",
+                ),
+                (
+                    "./../environments/testnet/haven/genesis/proposal-genesis.json",
+                    "/proposal-genesis.json",
+                ),
+                (
+                    "./../environments/testnet/haven/genesis/proposal.json",
+                    "/proposal.json",
+                ),
+            ]),
             Container::new(
                 "havend",
                 Dockerfile::Contents(dockerfile_havend()),
                 entrypoint,
                 &["--entry-name", "consumer"],
             )
-            .volumes(&[(
-                "./tests/resources/keyring-test",
-                "/root/.onomy_haven/keyring-test",
-            )]),
+            .volumes(&[
+                (
+                    "./../testnet_dealer_mnemonic.txt",
+                    "/testnet_dealer_mnemonic.txt",
+                ),
+                (
+                    "./../environments/testnet/haven/genesis/proposal-genesis.json",
+                    "/proposal-genesis.json",
+                ),
+                (
+                    "./../environments/testnet/haven/genesis/proposal.json",
+                    "/proposal.json",
+                ),
+            ]),
         ],
         Some(dockerfiles_dir),
         true,
@@ -311,7 +327,9 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
 
     let mut cosmovisor_runner = cosmovisor_start("onomyd_runner.log", None).await?;
 
-    let ccvconsumer_state = cosmovisor_add_consumer(daemon_home, consumer_id, "akudos").await?;
+    let proposal_s = FileOptions::read_to_string("/proposal.json").await?;
+
+    let ccvconsumer_state = cosmovisor_add_consumer(daemon_home, consumer_id, &proposal_s).await?;
 
     sh_cosmovisor_tx("provider register-consumer-reward-denom", &[
         IBC_KUDOS,

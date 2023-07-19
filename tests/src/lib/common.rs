@@ -8,8 +8,13 @@ pub fn dockerfile_onomyd() -> String {
 }
 
 #[rustfmt::skip]
-const DOWNLOAD_HAVEND: &str = r#"ADD https://github.com/onomyprotocol/multiverse/releases/download/$DAEMON_VERSION/onomyd $DAEMON_HOME/cosmovisor/genesis/$DAEMON_VERSION/bin/onomyd"#;
+const DOWNLOAD_HAVEND: &str = r#"ADD https://github.com/onomyprotocol/multiverse/releases/download/$DAEMON_VERSION/havend $DAEMON_HOME/cosmovisor/genesis/$DAEMON_VERSION/bin/havend"#;
 
 pub fn dockerfile_havend() -> String {
-    onomy_std_cosmos_daemon_with_arbitrary("havend", ".haven", "v0.1.0", DOWNLOAD_HAVEND)
+    onomy_std_cosmos_daemon_with_arbitrary(
+        "havend",
+        ".onomy_haven",
+        "v0.1.0-haven",
+        DOWNLOAD_HAVEND,
+    )
 }
