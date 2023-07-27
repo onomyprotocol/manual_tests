@@ -18,7 +18,7 @@ use onomy_test_lib::{
 };
 use tokio::time::sleep;
 
-const CHAIN_ID: &str = "onex";
+const CHAIN_ID: &str = "market";
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -30,13 +30,13 @@ async fn main() -> Result<()> {
             _ => format!("entry_name \"{s}\" is not recognized").map_add_err(|| ()),
         }
     } else {
-        let mut cmd = Command::new("go build ./cmd/onexd", &[]).ci_mode(true);
+        let mut cmd = Command::new(&format!("go build ./cmd/{CHAIN_ID}d"), &[]).ci_mode(true);
         cmd.cwd = Some("./../market/".to_owned());
         let comres = cmd.run_to_completion().await?;
         comres.assert_success()?;
         // copy to dockerfile resources (docker cannot use files from outside cwd)
         sh(
-            &format!("cp ./../market/onexd ./tests/dockerfiles/dockerfile_resources/{CHAIN_ID}d"),
+            &format!("cp ./../market/{CHAIN_ID}d ./tests/dockerfiles/dockerfile_resources/{CHAIN_ID}d"),
             &[],
         )
         .await?;
@@ -86,6 +86,16 @@ impl CoinPair {
         format!("{}{}", amount, self.coin_b())
     }
 
+    pub fn paired_amounts(&self, amount_a: u128, amount_b: u128) -> String {
+        format!(
+            "{}{},{}{}",
+            amount_a,
+            self.coin_a(),
+            amount_b,
+            self.coin_b()
+        )
+    }
+
     pub fn paired(&self) -> String {
         format!("{},{}", self.coin_a(), self.coin_b())
     }
@@ -97,8 +107,8 @@ impl CoinPair {
 /// Initiates the pool with 1 of each coin
 pub async fn market_create_pool(coin_pair: &CoinPair) -> Result<()> {
     sh_cosmovisor_tx("market create-pool", &[
-        &coin_pair.coin_a_amount(1),
-        &coin_pair.coin_b_amount(1),
+        &coin_pair.coin_a_amount(10),
+        &coin_pair.coin_b_amount(70),
         "--from",
         "validator",
         "--fees",
@@ -145,6 +155,25 @@ pub async fn market_show_members(coin_pair: &CoinPair) -> Result<(String, String
     Ok((member_a, member_b))
 }
 
+pub async fn market_create_drop(
+    coin_pair: &CoinPair,
+    drops: u128,
+) -> Result<()> {
+    sh_cosmovisor_tx("market create-drop", &[
+        &coin_pair.paired(),
+        &format!("{}", drops),
+        "--from",
+        "validator",
+        "--fees",
+        "1000000anative",
+        "-y",
+        "-b",
+        "block",
+    ])
+    .await?;
+    Ok(())
+}
+
 /*
 cosmovisor run query market list-drop
 drop:
@@ -161,6 +190,22 @@ pagination:
 
 //cosmovisor run tx market redeem-drop 1 --from validator --fees 1000000anative
 // -y -b block
+pub async fn market_redeem_drop(
+    uid: u64,
+) -> Result<()> {
+    sh_cosmovisor_tx("market redeem-drop", &[
+        &format!("{}", uid),
+        "--from",
+        "validator",
+        "--fees",
+        "1000000anative",
+        "-y",
+        "-b",
+        "block",
+    ])
+    .await?;
+    Ok(())
+}
 
 async fn standalone_runner(args: &Args) -> Result<()> {
     let daemon_home = args.daemon_home.as_ref().map_add_err(|| ())?;
@@ -171,6 +216,15 @@ async fn standalone_runner(args: &Args) -> Result<()> {
 
     let coin_pair = CoinPair::new("afootoken", "anative").map_add_err(|| ())?;
     market_create_pool(&coin_pair).await.map_add_err(|| ())?;
+
+    market_create_drop(&coin_pair, 800000)
+        .await
+        .map_add_err(|| ())?;
+
+    //market_redeem_drop(2).await.map_add_err(||())?;
+
+    let members = market_show_members(&coin_pair).await.map_add_err(|| ())?;
+    println!("members:{}\n{}", members.0, members.1);
 
     sleep(TIMEOUT).await;
     sleep(Duration::ZERO).await;
