@@ -387,7 +387,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
     // check that the IBC NOM converted back to regular NOM
     assert_eq!(
         cosmovisor_get_balances("onomy1gk7lg5kd73mcr8xuyw727ys22t7mtz9gh07ul3").await?["anom"],
-        "5000"
+        5000
     );
 
     // by now we have accumulated some IBC Kudos rewards, we claim them and test
@@ -477,7 +477,7 @@ async fn consumer(args: &Args) -> Result<()> {
         CONSUMER_ACCOUNT_PREFIX,
     )?;
     cosmovisor_bank_send(addr, dst_addr, "5000", "akudos").await?;
-    assert_eq!(cosmovisor_get_balances(dst_addr).await?["akudos"], "5000");
+    assert_eq!(cosmovisor_get_balances(dst_addr).await?["akudos"], 5000);
 
     let test_addr = &reprefix_bech32(
         "onomy1gk7lg5kd73mcr8xuyw727ys22t7mtz9gh07ul3",
@@ -537,7 +537,7 @@ async fn consumer(args: &Args) -> Result<()> {
     nm_onomyd.recv::<()>().await?;
     assert_eq!(
         cosmovisor_get_balances(KUDOS_TEST_ADDR).await?["akudos"],
-        "7000"
+        7000
     );
     // finished checking
     nm_onomyd.send::<()>(&()).await?;
