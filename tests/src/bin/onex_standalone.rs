@@ -12,10 +12,10 @@ use onomy_test_lib::{
     setups::market_standalone_setup,
     super_orchestrator::{
         sh,
-        stacked_errors::{Error, MapAddError, Result},
+        stacked_errors::{Error, StackableErr, Result},
         Command, FileOptions,
     },
-    Args, TIMEOUT,
+    Args, TIMEOUT, u64_array_bigints::U256,
 };
 use tokio::time::sleep;
 
@@ -28,7 +28,7 @@ async fn main() -> Result<()> {
     if let Some(ref s) = args.entry_name {
         match s.as_str() {
             "standalone" => standalone_runner(&args).await,
-            _ => format!("entry_name \"{s}\" is not recognized").map_add_err(|| ()),
+            _ => Err(Error::from(format!("entry_name \"{s}\" is not recognized"))),
         }
     } else {
         let mut cmd = Command::new(&format!("go build ./cmd/{CHAIN_ID}d"), &[]).ci_mode(true);
@@ -81,15 +81,15 @@ impl CoinPair {
         &self.coin_b
     }
 
-    pub fn coin_a_amount(&self, amount: u128) -> String {
+    pub fn coin_a_amount(&self, amount: U256) -> String {
         format!("{}{}", amount, self.coin_a())
     }
 
-    pub fn coin_b_amount(&self, amount: u128) -> String {
+    pub fn coin_b_amount(&self, amount: U256) -> String {
         format!("{}{}", amount, self.coin_b())
     }
 
-    pub fn paired_amounts(&self, amount_a: u128, amount_b: u128) -> String {
+    pub fn paired_amounts(&self, amount_a: U256, amount_b: U256) -> String {
         format!(
             "{}{},{}{}",
             amount_a,
@@ -103,16 +103,16 @@ impl CoinPair {
         format!("{},{}", self.coin_a(), self.coin_b())
     }
 
-    pub async fn cosmovisor_get_balances(&self, addr: &str) -> Result<(u128, u128)> {
+    pub async fn cosmovisor_get_balances(&self, addr: &str) -> Result<(U256, U256)> {
         let balances = cosmovisor_get_balances(addr)
             .await
-            .map_add_err(|| "cosmovisor_get_balances failed")?;
+            .stack_err(|| "cosmovisor_get_balances failed")?;
         let balance_a = *balances
             .get(self.coin_a())
-            .map_add_err(|| "did not find nonzero coin_a balance")?;
+            .stack_err(|| "did not find nonzero coin_a balance")?;
         let balance_b = *balances
             .get(self.coin_b())
-            .map_add_err(|| "did not find nonzero coin_b balance")?;
+            .stack_err(|| "did not find nonzero coin_b balance")?;
         Ok((balance_a, balance_b))
     }
 }
@@ -121,10 +121,10 @@ impl CoinPair {
 // validator --fees 1000000anative -y -b block
 
 /// Initiates the pool with 1 of each coin
-pub async fn market_create_pool(coin_pair: &CoinPair) -> Result<()> {
+pub async fn market_create_pool(coin_pair: &CoinPair, coin_a_amount: U256, coin_b_amount: U256) -> Result<()> {
     sh_cosmovisor_tx("market create-pool", &[
-        &coin_pair.coin_a_amount(1000),
-        &coin_pair.coin_b_amount(100),
+        &coin_pair.coin_a_amount(coin_a_amount),
+        &coin_pair.coin_b_amount(coin_b_amount),
         "--from",
         "validator",
         "--fees",
@@ -134,9 +134,12 @@ pub async fn market_create_pool(coin_pair: &CoinPair) -> Result<()> {
         "block",
     ])
     .await
-    .map_add_err(|| ())?;
+    .stack()?;
     Ok(())
 }
+
+// cosmovisor run tx market create-pool 340282366920938463463374607431768211455anative 340282366920938463463374607431768211455afootoken --from validator --fees 1000000anative -y -b block
+// cosmovisor run tx market create-pool 1000afootoken 1000anative --from validator --fees 1000000anative -y -b block
 
 //pool:
 //  denom1: afootoken
@@ -148,7 +151,7 @@ pub async fn market_create_pool(coin_pair: &CoinPair) -> Result<()> {
 pub async fn market_show_pool(coin_pair: &CoinPair) -> Result<String> {
     sh_cosmovisor("query market show-pool", &[&coin_pair.paired()])
         .await
-        .map_add_err(|| ())
+        .stack()
 }
 
 // shows both sides, with one looking like
@@ -162,17 +165,17 @@ pub async fn market_show_pool(coin_pair: &CoinPair) -> Result<String> {
 //  stop: "0"
 pub async fn market_show_members(coin_pair: &CoinPair) -> Result<(String, String)> {
     let member_a = sh_cosmovisor("query market show-member", &[
-        &coin_pair.coin_a(),
-        &coin_pair.coin_b(),
+        coin_pair.coin_a(),
+        coin_pair.coin_b(),
     ])
     .await
-    .map_add_err(|| ())?;
+    .stack()?;
     let member_b = sh_cosmovisor("query market show-member", &[
-        &coin_pair.coin_b(),
-        &coin_pair.coin_a(),
+        coin_pair.coin_b(),
+        coin_pair.coin_a(),
     ])
     .await
-    .map_add_err(|| ())?;
+    .stack()?;
     Ok((member_a, member_b))
 }
 
@@ -189,9 +192,12 @@ pub async fn market_create_drop(coin_pair: &CoinPair, drops: u128) -> Result<()>
         "block",
     ])
     .await
-    .map_add_err(|| ())?;
+    .stack()?;
     Ok(())
 }
+
+// cosmovisor run tx market create-drop anative,afootoken 1231241 --from validator --fees 1000000anative -y -b block
+// cosmovisor run tx market create-drop afootoken,anative 1231241 --from validator --fees 1000000anative -y -b block
 
 /*
 cosmovisor run query market list-drop
@@ -221,40 +227,43 @@ pub async fn market_redeem_drop(uid: u64) -> Result<()> {
         "block",
     ])
     .await
-    .map_add_err(|| ())?;
+    .stack()?;
     Ok(())
 }
 
 async fn standalone_runner(args: &Args) -> Result<()> {
-    let daemon_home = args.daemon_home.as_ref().map_add_err(|| ())?;
+    let daemon_home = args.daemon_home.as_ref().stack()?;
     market_standalone_setup(daemon_home, CHAIN_ID).await?;
     let mut cosmovisor_runner = cosmovisor_start(&format!("{CHAIN_ID}d_runner.log"), None).await?;
 
     let addr = &cosmovisor_get_addr("validator").await?;
+    //info!("{:?}", cosmovisor_get_balances(addr).await?);
+    let coin_pair = CoinPair::new("afootoken", "anative").stack()?;
 
-    let coin_pair = CoinPair::new("afootoken", "anative").map_add_err(|| ())?;
+    //market_create_pool(&coin_pair).await.stack()?;
+    market_show_pool(&coin_pair).await.stack()?;
+    // TODO test empty pool
+    /*market_show_members(&coin_pair).await.stack()?;
 
     let b0 = coin_pair.cosmovisor_get_balances(addr).await?.0;
-    market_create_pool(&coin_pair).await.map_add_err(|| ())?;
+    //market_create_drop(&coin_pair, 1).await.stack()?;
+    market_create_drop(&coin_pair, 12345).await.stack()?;
     let b1 = coin_pair.cosmovisor_get_balances(addr).await?.0;
     info!("change: {}", b0 - b1);
 
-    market_show_members(&coin_pair).await.map_add_err(|| ())?;
-
-    let b0 = coin_pair.cosmovisor_get_balances(addr).await?.0;
-    market_create_drop(&coin_pair, 1).await.map_add_err(|| ())?;
-    let b1 = coin_pair.cosmovisor_get_balances(addr).await?.0;
-    info!("change: {}", b0 - b1);
-
-    market_show_members(&coin_pair).await.map_add_err(|| ())?;
+    market_show_members(&coin_pair).await.stack()?;
 
     // cosmovisor run tx market redeem-drop 2 --from validator --fees 1000000anative
     // -y -b block
-    sleep(TIMEOUT).await;
+    //sleep(TIMEOUT).await;
 
-    market_redeem_drop(2).await.map_add_err(|| ())?;
+    market_redeem_drop(2).await.stack()?;
+    market_redeem_drop(1).await.stack()?;
 
-    market_show_members(&coin_pair).await.map_add_err(|| ())?;
+    market_show_members(&coin_pair).await.stack()?;*/
+
+    //cosmovisor run query market bookends
+    // cosmovisor run tx market create-order [denom-ask] [denom-bid] [order-type] [amount] [rate] [prev] [next] [flags]
 
     sleep(TIMEOUT).await;
     sleep(Duration::ZERO).await;

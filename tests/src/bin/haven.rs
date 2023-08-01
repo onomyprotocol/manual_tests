@@ -16,10 +16,11 @@ use onomy_test_lib::{
         docker::{Container, ContainerNetwork, Dockerfile},
         net_message::NetMessenger,
         remove_files_in_dir, sh,
-        stacked_errors::{MapAddError, Result},
+        stacked_errors::{StackableErr, Result, Error},
         Command, FileOptions, STD_DELAY, STD_TRIES,
     },
-    token18, Args, ONOMY_IBC_NOM, TIMEOUT,
+    u64_array_bigints,
+    token18, Args, ONOMY_IBC_NOM, TIMEOUT, u64_array_bigints::u256,
 };
 use serde_json::{json, Value};
 use tokio::time::sleep;
@@ -43,7 +44,7 @@ pub async fn onomyd_setup(daemon_home: &str) -> Result<String> {
 
     // rename all "stake" to "anom"
     let genesis_s = genesis_s.replace("\"stake\"", "\"anom\"");
-    let mut genesis: Value = serde_json::from_str(&genesis_s)?;
+    let mut genesis: Value = serde_json::from_str(&genesis_s).stack()?;
 
     force_chain_id(daemon_home, &mut genesis, chain_id).await?;
 
@@ -70,7 +71,7 @@ pub async fn onomyd_setup(daemon_home: &str) -> Result<String> {
     genesis["app_state"]["gov"]["deposit_params"]["max_deposit_period"] = gov_period;
 
     // write back genesis
-    let genesis_s = serde_json::to_string(&genesis)?;
+    let genesis_s = serde_json::to_string(&genesis).stack()?;
     FileOptions::write_str(&genesis_file_path, &genesis_s).await?;
 
     fast_block_times(daemon_home).await?;
@@ -124,12 +125,12 @@ pub async fn havend_setup(
 
     // read the haven proposal-genesis from neighboring repo
     let genesis_s = FileOptions::read_to_string("/proposal-genesis.json").await?;
-    let mut genesis: Value = serde_json::from_str(&genesis_s)?;
+    let mut genesis: Value = serde_json::from_str(&genesis_s).stack()?;
 
     //force_chain_id(daemon_home, &mut genesis, chain_id).await?;
 
     // add `ccvconsumer_state` to genesis
-    let ccvconsumer_state: Value = serde_json::from_str(ccvconsumer_state_s)?;
+    let ccvconsumer_state: Value = serde_json::from_str(ccvconsumer_state_s).stack()?;
     genesis["app_state"]["ccvconsumer"] = ccvconsumer_state;
 
     // decrease the governing period for fast tests
@@ -173,7 +174,7 @@ async fn main() -> Result<()> {
             "onomyd" => onomyd_runner(&args).await,
             "consumer" => consumer(&args).await,
             "hermes" => hermes_runner(&args).await,
-            _ => format!("entry_name \"{s}\" is not recognized").map_add_err(|| ()),
+            _ => Err(Error::from(format!("entry_name \"{s}\" is not recognized"))),
         }
     } else {
         container_runner(&args).await
@@ -308,14 +309,14 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
 
 async fn onomyd_runner(args: &Args) -> Result<()> {
     let consumer_id = CONSUMER_ID;
-    let daemon_home = args.daemon_home.as_ref().map_add_err(|| ())?;
+    let daemon_home = args.daemon_home.as_ref().stack()?;
     let mut nm_hermes = NetMessenger::connect(STD_TRIES, STD_DELAY, "hermes:26000")
         .await
-        .map_add_err(|| ())?;
+        .stack()?;
     let mut nm_consumer =
         NetMessenger::connect(STD_TRIES, STD_DELAY, &format!("{consumer_id}d:26001"))
             .await
-            .map_add_err(|| ())?;
+            .stack()?;
 
     let mnemonic = onomyd_setup(daemon_home).await?;
     // send mnemonic to hermes
@@ -387,7 +388,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
     // check that the IBC NOM converted back to regular NOM
     assert_eq!(
         cosmovisor_get_balances("onomy1gk7lg5kd73mcr8xuyw727ys22t7mtz9gh07ul3").await?["anom"],
-        5000
+        u256!(5000)
     );
 
     // by now we have accumulated some IBC Kudos rewards, we claim them and test
@@ -433,7 +434,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
 }
 
 async fn consumer(args: &Args) -> Result<()> {
-    let daemon_home = args.daemon_home.as_ref().map_add_err(|| ())?;
+    let daemon_home = args.daemon_home.as_ref().stack()?;
     let chain_id = CONSUMER_ID;
     let mut nm_onomyd = NetMessenger::listen_single_connect("0.0.0.0:26001", TIMEOUT).await?;
     // we need the initial consumer state
@@ -477,7 +478,7 @@ async fn consumer(args: &Args) -> Result<()> {
         CONSUMER_ACCOUNT_PREFIX,
     )?;
     cosmovisor_bank_send(addr, dst_addr, "5000", "akudos").await?;
-    assert_eq!(cosmovisor_get_balances(dst_addr).await?["akudos"], 5000);
+    assert_eq!(cosmovisor_get_balances(dst_addr).await?["akudos"], u256!(5000));
 
     let test_addr = &reprefix_bech32(
         "onomy1gk7lg5kd73mcr8xuyw727ys22t7mtz9gh07ul3",
@@ -537,7 +538,7 @@ async fn consumer(args: &Args) -> Result<()> {
     nm_onomyd.recv::<()>().await?;
     assert_eq!(
         cosmovisor_get_balances(KUDOS_TEST_ADDR).await?["akudos"],
-        7000
+        u256!(7000)
     );
     // finished checking
     nm_onomyd.send::<()>(&()).await?;
