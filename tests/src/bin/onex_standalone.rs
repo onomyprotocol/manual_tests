@@ -12,10 +12,11 @@ use onomy_test_lib::{
     setups::market_standalone_setup,
     super_orchestrator::{
         sh,
-        stacked_errors::{Error, StackableErr, Result},
+        stacked_errors::{Error, Result, StackableErr},
         Command, FileOptions,
     },
-    Args, TIMEOUT, u64_array_bigints::U256,
+    u64_array_bigints::U256,
+    Args, TIMEOUT,
 };
 use tokio::time::sleep;
 
@@ -33,7 +34,7 @@ async fn main() -> Result<()> {
     } else {
         let mut cmd = Command::new(&format!("go build ./cmd/{CHAIN_ID}d"), &[]).ci_mode(true);
         cmd.cwd = Some("./../market/".to_owned());
-        let comres = cmd.run_to_completion().await?;
+        let comres = cmd.run_to_completion().await.stack()?;
         comres.assert_success()?;
         // copy to dockerfile resources (docker cannot use files from outside cwd)
         sh(
@@ -42,7 +43,8 @@ async fn main() -> Result<()> {
             ),
             &[],
         )
-        .await?;
+        .await
+        .stack()?;
         container_runner(&args, &[(
             "standalone",
             &onomy_std_cosmos_daemon(
@@ -53,6 +55,7 @@ async fn main() -> Result<()> {
             ),
         )])
         .await
+        .stack()
     }
 }
 
@@ -121,7 +124,11 @@ impl CoinPair {
 // validator --fees 1000000anative -y -b block
 
 /// Initiates the pool with 1 of each coin
-pub async fn market_create_pool(coin_pair: &CoinPair, coin_a_amount: U256, coin_b_amount: U256) -> Result<()> {
+pub async fn market_create_pool(
+    coin_pair: &CoinPair,
+    coin_a_amount: U256,
+    coin_b_amount: U256,
+) -> Result<()> {
     sh_cosmovisor_tx("market create-pool", &[
         &coin_pair.coin_a_amount(coin_a_amount),
         &coin_pair.coin_b_amount(coin_b_amount),
@@ -138,8 +145,11 @@ pub async fn market_create_pool(coin_pair: &CoinPair, coin_a_amount: U256, coin_
     Ok(())
 }
 
-// cosmovisor run tx market create-pool 340282366920938463463374607431768211455anative 340282366920938463463374607431768211455afootoken --from validator --fees 1000000anative -y -b block
-// cosmovisor run tx market create-pool 1000afootoken 1000anative --from validator --fees 1000000anative -y -b block
+// cosmovisor run tx market create-pool
+// 340282366920938463463374607431768211455anative
+// 340282366920938463463374607431768211455afootoken --from validator --fees
+// 1000000anative -y -b block cosmovisor run tx market create-pool 1000afootoken
+// 1000anative --from validator --fees 1000000anative -y -b block
 
 //pool:
 //  denom1: afootoken
@@ -196,8 +206,10 @@ pub async fn market_create_drop(coin_pair: &CoinPair, drops: u128) -> Result<()>
     Ok(())
 }
 
-// cosmovisor run tx market create-drop anative,afootoken 1231241 --from validator --fees 1000000anative -y -b block
-// cosmovisor run tx market create-drop afootoken,anative 1231241 --from validator --fees 1000000anative -y -b block
+// cosmovisor run tx market create-drop anative,afootoken 1231241 --from
+// validator --fees 1000000anative -y -b block cosmovisor run tx market
+// create-drop afootoken,anative 1231241 --from validator --fees 1000000anative
+// -y -b block
 
 /*
 cosmovisor run query market list-drop
@@ -233,11 +245,13 @@ pub async fn market_redeem_drop(uid: u64) -> Result<()> {
 
 async fn standalone_runner(args: &Args) -> Result<()> {
     let daemon_home = args.daemon_home.as_ref().stack()?;
-    market_standalone_setup(daemon_home, CHAIN_ID).await?;
+    market_standalone_setup(daemon_home, CHAIN_ID)
+        .await
+        .stack()?;
     let mut cosmovisor_runner = cosmovisor_start(&format!("{CHAIN_ID}d_runner.log"), None).await?;
 
-    let addr = &cosmovisor_get_addr("validator").await?;
-    //info!("{:?}", cosmovisor_get_balances(addr).await?);
+    let addr = &cosmovisor_get_addr("validator").await.stack()?;
+    //info!("{:?}", cosmovisor_get_balances(addr).await.stack()?);
     let coin_pair = CoinPair::new("afootoken", "anative").stack()?;
 
     //market_create_pool(&coin_pair).await.stack()?;
@@ -245,10 +259,10 @@ async fn standalone_runner(args: &Args) -> Result<()> {
     // TODO test empty pool
     /*market_show_members(&coin_pair).await.stack()?;
 
-    let b0 = coin_pair.cosmovisor_get_balances(addr).await?.0;
+    let b0 = coin_pair.cosmovisor_get_balances(addr).await.stack()?.0;
     //market_create_drop(&coin_pair, 1).await.stack()?;
     market_create_drop(&coin_pair, 12345).await.stack()?;
-    let b1 = coin_pair.cosmovisor_get_balances(addr).await?.0;
+    let b1 = coin_pair.cosmovisor_get_balances(addr).await.stack()?.0;
     info!("change: {}", b0 - b1);
 
     market_show_members(&coin_pair).await.stack()?;
@@ -263,14 +277,17 @@ async fn standalone_runner(args: &Args) -> Result<()> {
     market_show_members(&coin_pair).await.stack()?;*/
 
     //cosmovisor run query market bookends
-    // cosmovisor run tx market create-order [denom-ask] [denom-bid] [order-type] [amount] [rate] [prev] [next] [flags]
+    // cosmovisor run tx market create-order [denom-ask] [denom-bid] [order-type]
+    // [amount] [rate] [prev] [next] [flags]
 
     sleep(TIMEOUT).await;
     sleep(Duration::ZERO).await;
-    cosmovisor_runner.terminate(TIMEOUT).await?;
+    cosmovisor_runner.terminate(TIMEOUT).await.stack()?;
     // test that exporting works
-    let exported = sh_cosmovisor_no_dbg("export", &[]).await?;
-    FileOptions::write_str(&format!("/logs/{CHAIN_ID}d_export.json"), &exported).await?;
+    let exported = sh_cosmovisor_no_dbg("export", &[]).await.stack()?;
+    FileOptions::write_str(&format!("/logs/{CHAIN_ID}d_export.json"), &exported)
+        .await
+        .stack()?;
 
     Ok(())
 }

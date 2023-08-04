@@ -16,11 +16,12 @@ use onomy_test_lib::{
         docker::{Container, ContainerNetwork, Dockerfile},
         net_message::NetMessenger,
         remove_files_in_dir, sh,
-        stacked_errors::{StackableErr, Result, Error},
+        stacked_errors::{Error, Result, StackableErr},
         Command, FileOptions, STD_DELAY, STD_TRIES,
     },
-    u64_array_bigints,
-    token18, Args, ONOMY_IBC_NOM, TIMEOUT, u64_array_bigints::u256,
+    token18, u64_array_bigints,
+    u64_array_bigints::u256,
+    Args, ONOMY_IBC_NOM, TIMEOUT,
 };
 use serde_json::{json, Value};
 use tokio::time::sleep;
@@ -35,18 +36,28 @@ const KUDOS_TEST_ADDR: &str = "onomy1y046r7wtrcss63kauwpee5rkmm322fn8twluug";
 pub async fn onomyd_setup(daemon_home: &str) -> Result<String> {
     let chain_id = "onomy";
     let global_min_self_delegation = &token18(225.0e3, "");
-    sh_cosmovisor("config chain-id", &[chain_id]).await?;
-    sh_cosmovisor("config keyring-backend test", &[]).await?;
-    sh_cosmovisor_no_dbg("init --overwrite", &[chain_id]).await?;
+    sh_cosmovisor("config chain-id", &[chain_id])
+        .await
+        .stack()?;
+    sh_cosmovisor("config keyring-backend test", &[])
+        .await
+        .stack()?;
+    sh_cosmovisor_no_dbg("init --overwrite", &[chain_id])
+        .await
+        .stack()?;
 
     let genesis_file_path = format!("{daemon_home}/config/genesis.json");
-    let genesis_s = FileOptions::read_to_string(&genesis_file_path).await?;
+    let genesis_s = FileOptions::read_to_string(&genesis_file_path)
+        .await
+        .stack()?;
 
     // rename all "stake" to "anom"
     let genesis_s = genesis_s.replace("\"stake\"", "\"anom\"");
     let mut genesis: Value = serde_json::from_str(&genesis_s).stack()?;
 
-    force_chain_id(daemon_home, &mut genesis, chain_id).await?;
+    force_chain_id(daemon_home, &mut genesis, chain_id)
+        .await
+        .stack()?;
 
     // put in the test `footoken` and the staking `anom`
     let denom_metadata = nom_denom();
@@ -478,7 +489,10 @@ async fn consumer(args: &Args) -> Result<()> {
         CONSUMER_ACCOUNT_PREFIX,
     )?;
     cosmovisor_bank_send(addr, dst_addr, "5000", "akudos").await?;
-    assert_eq!(cosmovisor_get_balances(dst_addr).await?["akudos"], u256!(5000));
+    assert_eq!(
+        cosmovisor_get_balances(dst_addr).await?["akudos"],
+        u256!(5000)
+    );
 
     let test_addr = &reprefix_bech32(
         "onomy1gk7lg5kd73mcr8xuyw727ys22t7mtz9gh07ul3",
