@@ -15,7 +15,7 @@ use onomy_test_lib::{
         stacked_errors::{Error, Result, StackableErr},
         Command, FileOptions,
     },
-    u64_array_bigints::U256,
+    u64_array_bigints::{self, u256, U256},
     Args, TIMEOUT,
 };
 use tokio::time::sleep;
@@ -159,7 +159,7 @@ pub async fn market_create_pool(
 //  - address: onomy1nvsmtc4trpwxrx4vyzlm4ex6e4q3y46wwyapr9 drops: "2"
 //  pair: afootoken,anative
 pub async fn market_show_pool(coin_pair: &CoinPair) -> Result<String> {
-    sh_cosmovisor("query market show-pool", &[&coin_pair.paired()])
+    sh_cosmovisor("query market pool", &[&coin_pair.paired()])
         .await
         .stack()
 }
@@ -243,6 +243,81 @@ pub async fn market_redeem_drop(uid: u64) -> Result<()> {
     Ok(())
 }
 
+pub async fn market_market_order(
+    coin_ask: &str,
+    coin_bid: &str,
+    amount_bid: U256,
+    slippage: u16,
+) -> Result<()> {
+    sh_cosmovisor_tx("market market-order", &[
+        coin_ask,
+        coin_bid,
+        &format!("{}", amount_bid),
+        &format!("{}", slippage),
+        "--from",
+        "validator",
+        "--fees",
+        "1000000anative",
+        "-y",
+        "-b",
+        "block",
+    ])
+    .await
+    .stack()?;
+    Ok(())
+}
+
+// cosmovisor run tx market create-order afootoken anative stop 100 1100,900 0 0
+// --from validator --fees 1000000anative -y -b block
+pub async fn market_create_order(
+    coin_ask: &str,
+    coin_bid: &str,
+    order_type: &str,
+    amount: U256,
+    rate: (u64, u64),
+    prev: u64,
+    next: u64,
+) -> Result<()> {
+    sh_cosmovisor_tx("market create-order", &[
+        coin_ask,
+        coin_bid,
+        order_type,
+        &format!("{}", amount),
+        &format!("{},{}", rate.0, rate.1),
+        &format!("{}", prev),
+        &format!("{}", next),
+        "--from",
+        "validator",
+        "--fees",
+        "1000000anative",
+        "-y",
+        "-b",
+        "block",
+    ])
+    .await
+    .stack()?;
+    Ok(())
+}
+
+pub async fn market_cancel_order(uid: u64) -> Result<()> {
+    sh_cosmovisor_tx("market cancel-order", &[
+        &format!("{}", uid),
+        "--from",
+        "validator",
+        "--fees",
+        "1000000anative",
+        "-y",
+        "-b",
+        "block",
+    ])
+    .await
+    .stack()?;
+    Ok(())
+}
+
+//cosmovisor run tx market market-order afootoken anative 10000 9999 --from
+// validator --fees 1000000anative -y -b block
+
 async fn standalone_runner(args: &Args) -> Result<()> {
     let daemon_home = args.daemon_home.as_ref().stack()?;
     market_standalone_setup(daemon_home, CHAIN_ID)
@@ -254,8 +329,27 @@ async fn standalone_runner(args: &Args) -> Result<()> {
     //info!("{:?}", cosmovisor_get_balances(addr).await.stack()?);
     let coin_pair = CoinPair::new("afootoken", "anative").stack()?;
 
-    //market_create_pool(&coin_pair).await.stack()?;
+    market_create_pool(&coin_pair, u256!(1000), u256!(1000))
+        .await
+        .stack()?;
+    market_create_drop(&coin_pair, 1000000).await.stack()?;
     market_show_pool(&coin_pair).await.stack()?;
+    market_market_order(&coin_pair.coin_a, &coin_pair.coin_b, u256!(10), 1000)
+        .await
+        .stack()?;
+    market_redeem_drop(1).await.stack()?;
+    market_create_order(
+        coin_pair.coin_a(),
+        coin_pair.coin_b(),
+        "stop",
+        u256!(100),
+        (1100, 900),
+        0,
+        0,
+    )
+    .await
+    .stack()?;
+    market_cancel_order(1).await.stack()?;
     // TODO test empty pool
     /*market_show_members(&coin_pair).await.stack()?;
 
@@ -280,7 +374,7 @@ async fn standalone_runner(args: &Args) -> Result<()> {
     // cosmovisor run tx market create-order [denom-ask] [denom-bid] [order-type]
     // [amount] [rate] [prev] [next] [flags]
 
-    sleep(TIMEOUT).await;
+    //sleep(TIMEOUT).await;
     sleep(Duration::ZERO).await;
     cosmovisor_runner.terminate(TIMEOUT).await.stack()?;
     // test that exporting works
