@@ -189,7 +189,7 @@ pub async fn market_show_members(coin_pair: &CoinPair) -> Result<(String, String
     Ok((member_a, member_b))
 }
 
-pub async fn market_create_drop(coin_pair: &CoinPair, drops: u128) -> Result<()> {
+pub async fn market_create_drop(coin_pair: &CoinPair, drops: U256) -> Result<()> {
     sh_cosmovisor_tx("market create-drop", &[
         &coin_pair.paired(),
         &format!("{}", drops),
@@ -326,13 +326,16 @@ async fn standalone_runner(args: &Args) -> Result<()> {
     let mut cosmovisor_runner = cosmovisor_start(&format!("{CHAIN_ID}d_runner.log"), None).await?;
 
     let addr = &cosmovisor_get_addr("validator").await.stack()?;
-    //info!("{:?}", cosmovisor_get_balances(addr).await.stack()?);
+    info!("{:?}", cosmovisor_get_balances(addr).await.stack()?);
     let coin_pair = CoinPair::new("afootoken", "anative").stack()?;
 
-    market_create_pool(&coin_pair, u256!(1000), u256!(1000))
+    // total cap of an example crapcoin
+    //let large = u256!(1000000000000000000000000000000000);
+    let large = u256!(100000000000000007);
+    market_create_pool(&coin_pair, large, large)
         .await
         .stack()?;
-    market_create_drop(&coin_pair, 1000000).await.stack()?;
+    market_create_drop(&coin_pair, large).await.stack()?;
     market_show_pool(&coin_pair).await.stack()?;
     market_market_order(&coin_pair.coin_a, &coin_pair.coin_b, u256!(10), 1000)
         .await
@@ -349,7 +352,8 @@ async fn standalone_runner(args: &Args) -> Result<()> {
     )
     .await
     .stack()?;
-    market_cancel_order(1).await.stack()?;
+    //market_cancel_order(1).await.stack()?;
+
     // TODO test empty pool
     /*market_show_members(&coin_pair).await.stack()?;
 
