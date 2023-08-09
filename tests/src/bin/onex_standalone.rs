@@ -232,6 +232,8 @@ pub async fn market_redeem_drop(uid: u64) -> Result<()> {
         &format!("{}", uid),
         "--from",
         "validator",
+        "--gas",
+        "300000",
         "--fees",
         "1000000anative",
         "-y",
@@ -329,15 +331,15 @@ async fn standalone_runner(args: &Args) -> Result<()> {
     info!("{:?}", cosmovisor_get_balances(addr).await.stack()?);
     let coin_pair = CoinPair::new("afootoken", "anative").stack()?;
 
-    // total cap of an example crapcoin
-    //let large = u256!(1000000000000000000000000000000000);
-    let large = u256!(100000000000000007);
-    market_create_pool(&coin_pair, large, large)
+    // test numerical limits
+    let large = u256!(5192296858534827628530496329220095);
+    let large_squared = u256!(26959946667150639794667015087019620289043427352885315420110951809025);
+    market_create_pool(&coin_pair, large, large).await.stack()?;
+    market_create_drop(&coin_pair, large_squared)
         .await
         .stack()?;
-    market_create_drop(&coin_pair, large).await.stack()?;
     market_show_pool(&coin_pair).await.stack()?;
-    market_market_order(&coin_pair.coin_a, &coin_pair.coin_b, u256!(10), 1000)
+    market_market_order(&coin_pair.coin_a, &coin_pair.coin_b, large, 5000)
         .await
         .stack()?;
     market_redeem_drop(1).await.stack()?;
@@ -345,7 +347,7 @@ async fn standalone_runner(args: &Args) -> Result<()> {
         coin_pair.coin_a(),
         coin_pair.coin_b(),
         "stop",
-        u256!(100),
+        large,
         (1100, 900),
         0,
         0,
