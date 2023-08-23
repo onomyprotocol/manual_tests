@@ -10,7 +10,7 @@ async fn main() -> Result<()> {
     // all branches
     remove_files_in_dir("./tests/dockerfiles", &["__tmp.dockerfile"]).await?;
     remove_files_in_dir("./tests/dockerfiles/dockerfile_resources", &[
-        "onomyd", "havend", "appnamed",
+        "onomyd", "havend", "appnamed", "marketd", "onexd",
     ])
     .await?;
     remove_files_in_dir("./tests/logs", &[".log", ".json", ".toml"]).await?;
