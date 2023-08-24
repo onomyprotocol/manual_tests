@@ -67,22 +67,22 @@
       "owners": []
     },
     "ccvconsumer": {
-        "height_to_valset_update_id": [],
-        "initial_val_set": [],
-        "last_transmission_block_height": {
-            "height": "0"
-        },
-        "maturing_packets": [],
-        "new_chain": false,
-        "outstanding_downtime_slashing": [],
-        "params": {},
-        "pending_consumer_packets": {
-            "list": []
-        },
-        "provider_channel_id": "",
-        "provider_client_id": "",
-        "provider_client_state": null,
-        "provider_consensus_state": null
+      "height_to_valset_update_id": [],
+      "initial_val_set": [],
+      "last_transmission_block_height": {
+        "height": "0"
+      },
+      "maturing_packets": [],
+      "new_chain": false,
+      "outstanding_downtime_slashing": [],
+      "params": {},
+      "pending_consumer_packets": {
+        "list": []
+      },
+      "provider_channel_id": "",
+      "provider_client_id": "",
+      "provider_client_state": null,
+      "provider_consensus_state": null
     },
     "crisis": {
       "constant_fee": {

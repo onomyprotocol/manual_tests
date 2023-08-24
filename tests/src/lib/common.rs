@@ -16,7 +16,7 @@ pub fn dockerfile_onomyd() -> String {
 }
 
 #[rustfmt::skip]
-const DOWNLOAD_ONEXD: &str = r#"ADD https://github.com/onomyprotocol/multiverse/releases/download/$DAEMON_VERSION/onomyd $DAEMON_HOME/cosmovisor/genesis/$DAEMON_VERSION/bin/onomyd"#;
+const DOWNLOAD_ONEXD: &str = r#"ADD https://github.com/onomyprotocol/multiverse/releases/download/$DAEMON_VERSION/onexd $DAEMON_HOME/cosmovisor/genesis/$DAEMON_VERSION/bin/onexd"#;
 
 pub fn dockerfile_onexd() -> String {
     onomy_std_cosmos_daemon_with_arbitrary("onexd", ".onomy_onex", "v0.1.0-onex", DOWNLOAD_ONEXD)

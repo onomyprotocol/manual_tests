@@ -27,7 +27,7 @@ use onomy_test_lib::{
     u64_array_bigints::{
         u256, {self},
     },
-    yaml_str_to_json_value, Args, ONOMY_IBC_NOM, TEST_AMOUNT, TIMEOUT,
+    yaml_str_to_json_value, Args, ONOMY_IBC_NOM, TIMEOUT,
 };
 use tokio::time::sleep;
 
@@ -110,7 +110,7 @@ async fn container_runner(args: &Args) -> Result<()> {
                 "onexd",
                 Dockerfile::Contents(dockerfile_onexd()),
                 entrypoint,
-                &["--entry-name", "onexd"],
+                &["--entry-name", "consumer"],
             )
             .volumes(&[(
                 "./tests/resources/keyring-test",
@@ -252,7 +252,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
         .cosmovisor_ibc_transfer(
             "validator",
             &reprefix_bech32(addr, CONSUMER_ACCOUNT_PREFIX).stack()?,
-            &TEST_AMOUNT.checked_short_divide(10).unwrap().0.to_string(),
+            "10000000000000000000000",
             "anom",
         )
         .await
@@ -389,26 +389,20 @@ async fn consumer(args: &Args) -> Result<()> {
     // market module specific sanity checks (need to check all tx commands
     // specifically to make sure permissions are correct)
 
+    let amount = u256!(10000000000000000000);
+    let amount_sqr = amount.checked_mul(amount).unwrap();
     let coin_pair = CoinPair::new("anative", ibc_nom).stack()?;
     let mut market = Market::new("validator", &format!("1000000{ibc_nom}"));
     market.gas = Some("300000".to_owned());
     market
-        .create_pool(&coin_pair, Market::MAX_COIN, Market::MAX_COIN)
+        .create_pool(&coin_pair, amount, amount)
         .await
         .stack()?;
-    market
-        .create_drop(&coin_pair, Market::MAX_COIN_SQUARED)
-        .await
-        .stack()?;
+    market.create_drop(&coin_pair, amount_sqr).await.stack()?;
     market.show_pool(&coin_pair).await.stack()?;
     market.show_members(&coin_pair).await.stack()?;
     market
-        .market_order(
-            coin_pair.coin_a(),
-            coin_pair.coin_b(),
-            Market::MAX_COIN,
-            5000,
-        )
+        .market_order(coin_pair.coin_a(), coin_pair.coin_b(), amount, 5000)
         .await
         .stack()?;
     market.redeem_drop(1).await.stack()?;
@@ -417,7 +411,7 @@ async fn consumer(args: &Args) -> Result<()> {
             coin_pair.coin_a(),
             coin_pair.coin_b(),
             "stop",
-            Market::MAX_COIN,
+            amount,
             (1100, 900),
             (0, 0),
         )
@@ -428,7 +422,7 @@ async fn consumer(args: &Args) -> Result<()> {
             coin_pair.coin_a(),
             coin_pair.coin_b(),
             "limit",
-            Market::MAX_COIN,
+            amount,
             (1100, 900),
             (0, 0),
         )
