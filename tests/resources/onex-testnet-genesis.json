@@ -1,5 +1,5 @@
 {
-  "genesis_time": "2023-08-28T15:00:00",
+  "genesis_time": "2023-08-28T15:00:00.000Z",
   "chain_id": "onex",
   "initial_height": "1",
   "consensus_params": {

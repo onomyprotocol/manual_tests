@@ -1,0 +1,24 @@
+{
+    "title": "Propose the addition of a new chain",
+    "description": "Add the ONEX consumer chain",
+    "chain_id": "onex",
+    "initial_height": {
+        "revision_number": 0,
+        "revision_height": 1
+    },
+    "genesis_hash": "a7Omnx0/u9EHU/QzCAzCAc56u3FES4thhhwceMpOtmU=",
+    "binary_hash": "a1sL393JJItWkxeJz8Hzle+r82vy2SCelQHes6hC9PI=",
+    "spawn_time": "2023-08-28T15:00:00.000Z",
+    "unbonding_period": 1728000000000000,
+    "consumer_redistribution_fraction": "0.5",
+    "provider_reward_denoms": [
+        "anom"
+    ],
+    "reward_denoms": [],
+    "blocks_per_distribution_transmission": 1000,
+    "soft_opt_out_threshold": "0.0",
+    "historical_entries": 10000,
+    "ccv_timeout_period": 2419200000000000,
+    "transfer_timeout_period": 3600000000000,
+    "deposit": "500000000000000000000anom"
+}

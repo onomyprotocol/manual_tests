@@ -2,3 +2,4 @@
 !.gitignore
 !keyring-test
 !onex-testnet-genesis.json
+!onex-testnet-genesis-proposal.json
