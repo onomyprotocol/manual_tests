@@ -5,8 +5,8 @@ use log::info;
 use onomy_test_lib::{
     cosmovisor::{
         cosmovisor_bank_send, cosmovisor_get_addr, cosmovisor_get_balances,
-        cosmovisor_gov_file_proposal, cosmovisor_start, set_minimum_gas_price, sh_cosmovisor,
-        sh_cosmovisor_no_dbg, sh_cosmovisor_tx, wait_for_num_blocks,
+        cosmovisor_gov_file_proposal, cosmovisor_start, fast_block_times, set_minimum_gas_price,
+        sh_cosmovisor, sh_cosmovisor_no_dbg, sh_cosmovisor_tx, wait_for_num_blocks,
     },
     dockerfiles::dockerfile_hermes,
     hermes::{
@@ -15,7 +15,7 @@ use onomy_test_lib::{
     },
     market::{CoinPair, Market},
     onomy_std_init, reprefix_bech32,
-    setups::{cosmovisor_add_consumer, marketd_setup, onomyd_setup, test_proposal},
+    setups::{cosmovisor_add_consumer, onomyd_setup, CosmosSetupOptions},
     super_orchestrator::{
         docker::{Container, ContainerNetwork, Dockerfile},
         net_message::NetMessenger,
@@ -29,11 +29,70 @@ use onomy_test_lib::{
     },
     yaml_str_to_json_value, Args, ONOMY_IBC_NOM, TIMEOUT,
 };
+use serde_json::Value;
 use tokio::time::sleep;
 
 const CONSUMER_ID: &str = "onex";
 const PROVIDER_ACCOUNT_PREFIX: &str = "onomy";
 const CONSUMER_ACCOUNT_PREFIX: &str = "onomy";
+const PROPOSAL: &str = include_str!("./../../resources/onex-testnet-genesis-proposal.json");
+const GENESIS: &str = include_str!("./../../resources/onex-testnet-genesis.json");
+
+pub async fn onexd_setup(
+    daemon_home: &str,
+    chain_id: &str,
+    ccvconsumer_state_s: &str,
+) -> Result<()> {
+    sh_cosmovisor("config chain-id", &[chain_id])
+        .await
+        .stack()?;
+    sh_cosmovisor("config keyring-backend test", &[])
+        .await
+        .stack()?;
+    sh_cosmovisor_no_dbg("init --overwrite", &[chain_id])
+        .await
+        .stack()?;
+    let genesis_file_path = format!("{daemon_home}/config/genesis.json");
+
+    // add `ccvconsumer_state` to genesis
+    let genesis_s = GENESIS;
+
+    let mut genesis: Value = serde_json::from_str(&genesis_s).stack()?;
+
+    let ccvconsumer_state: Value = serde_json::from_str(ccvconsumer_state_s).stack()?;
+    genesis["app_state"]["ccvconsumer"] = ccvconsumer_state;
+
+    // decrease the governing period for fast tests
+    let gov_period = "800ms";
+    let gov_period: Value = gov_period.into();
+    genesis["app_state"]["gov"]["voting_params"]["voting_period"] = gov_period.clone();
+    genesis["app_state"]["gov"]["deposit_params"]["max_deposit_period"] = gov_period;
+
+    let genesis_s = genesis.to_string();
+
+    FileOptions::write_str(&genesis_file_path, &genesis_s)
+        .await
+        .stack()?;
+    FileOptions::write_str(&format!("/logs/{chain_id}_genesis.json"), &genesis_s)
+        .await
+        .stack()?;
+
+    fast_block_times(daemon_home).await.stack()?;
+    set_minimum_gas_price(daemon_home, "1anative")
+        .await
+        .stack()?;
+
+    FileOptions::write_str(
+        &format!("/logs/{chain_id}_genesis.json"),
+        &FileOptions::read_to_string(&genesis_file_path)
+            .await
+            .stack()?,
+    )
+    .await
+    .stack()?;
+
+    Ok(())
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -102,10 +161,13 @@ async fn container_runner(args: &Args) -> Result<()> {
                 entrypoint,
                 &["--entry-name", "onomyd"],
             )
-            .volumes(&[(
-                "./tests/resources/keyring-test",
-                "/root/.onomy/keyring-test",
-            )]),
+            .volumes(&[
+                (
+                    "./tests/resources/keyring-test",
+                    "/root/.onomy/keyring-test",
+                ),
+                ("./tests/resources/", "/resources/"),
+            ]),
             Container::new(
                 "onexd",
                 Dockerfile::Contents(dockerfile_onexd()),
@@ -196,7 +258,12 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
             .stack()
             .stack()?;
 
-    let mnemonic = onomyd_setup(daemon_home, None).await.stack()?;
+    let mnemonic = FileOptions::read_to_string("/resources/mnemonic.txt")
+        .await
+        .stack()?;
+    let mut options = CosmosSetupOptions::new(daemon_home);
+    options.mnemonic = Some(mnemonic);
+    let mnemonic = onomyd_setup(options).await.stack()?;
     // send mnemonic to hermes
     nm_hermes.send::<String>(&mnemonic).await.stack()?;
 
@@ -206,13 +273,12 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
 
     let mut cosmovisor_runner = cosmovisor_start("onomyd_runner.log", None).await.stack()?;
 
-    let ccvconsumer_state = cosmovisor_add_consumer(
-        daemon_home,
-        consumer_id,
-        &test_proposal(consumer_id, "anative"),
-    )
-    .await
-    .stack()?;
+    //let proposal = onomy_test_lib::setups::test_proposal(consumer_id, "anative");
+    let proposal = PROPOSAL;
+    info!("PROPOSAL: {proposal}");
+    let ccvconsumer_state = cosmovisor_add_consumer(daemon_home, consumer_id, &proposal)
+        .await
+        .stack()?;
 
     // send to consumer
     nm_consumer
@@ -252,7 +318,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
         .cosmovisor_ibc_transfer(
             "validator",
             &reprefix_bech32(addr, CONSUMER_ACCOUNT_PREFIX).stack()?,
-            "10000000000000000000000",
+            "5000000000000000000000",
             "anom",
         )
         .await
@@ -302,7 +368,7 @@ async fn consumer(args: &Args) -> Result<()> {
     // we need the initial consumer state
     let ccvconsumer_state_s: String = nm_onomyd.recv().await.stack()?;
 
-    marketd_setup(daemon_home, chain_id, &ccvconsumer_state_s)
+    onexd_setup(daemon_home, chain_id, &ccvconsumer_state_s)
         .await
         .stack()?;
 
@@ -389,7 +455,7 @@ async fn consumer(args: &Args) -> Result<()> {
     // market module specific sanity checks (need to check all tx commands
     // specifically to make sure permissions are correct)
 
-    let amount = u256!(10000000000000000000);
+    let amount = u256!(100000000000000000);
     let amount_sqr = amount.checked_mul(amount).unwrap();
     let coin_pair = CoinPair::new("anative", ibc_nom).stack()?;
     let mut market = Market::new("validator", &format!("1000000{ibc_nom}"));
