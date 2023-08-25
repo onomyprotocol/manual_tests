@@ -57,7 +57,7 @@ pub async fn onexd_setup(
     // add `ccvconsumer_state` to genesis
     let genesis_s = GENESIS;
 
-    let mut genesis: Value = serde_json::from_str(&genesis_s).stack()?;
+    let mut genesis: Value = serde_json::from_str(genesis_s).stack()?;
 
     let ccvconsumer_state: Value = serde_json::from_str(ccvconsumer_state_s).stack()?;
     genesis["app_state"]["ccvconsumer"] = ccvconsumer_state;
@@ -276,7 +276,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
     //let proposal = onomy_test_lib::setups::test_proposal(consumer_id, "anative");
     let proposal = PROPOSAL;
     info!("PROPOSAL: {proposal}");
-    let ccvconsumer_state = cosmovisor_add_consumer(daemon_home, consumer_id, &proposal)
+    let ccvconsumer_state = cosmovisor_add_consumer(daemon_home, consumer_id, proposal)
         .await
         .stack()?;
 
