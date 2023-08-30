@@ -6,9 +6,9 @@
         "revision_number": 0,
         "revision_height": 1
     },
-    "genesis_hash": "Z2VuX2hhc2g=",
+    "genesis_hash": "za04rDKz3YkE9yAWiZAmepkB5xWAp2JeQ9Uq8ofa08k=",
     "binary_hash": "YmluX2hhc2g=",
-    "spawn_time": "2023-08-23T15:00:00.000Z",
+    "spawn_time": "2023-09-04T15:00:00.000Z",
     "unbonding_period": 1728000000000000,
     "consumer_redistribution_fraction": "0.5",
     "provider_reward_denoms": [
