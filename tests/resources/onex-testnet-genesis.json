@@ -53,24 +53,24 @@
           "address": "onomy1yks83spz6lvrrys8kh0untt22399tskk6jafcv",
           "coins": [
             {
-              "denom": "anative",
-              "amount": "10000000000000000000000000000"
-            },
-            {
               "denom": "abtc",
               "amount": "10000000000000000000000"
             },
             {
-              "denom": "wei",
-              "amount": "100000000000000000000000"
+              "denom": "anative",
+              "amount": "10000000000000000000000000000"
+            },
+            {
+              "denom": "ausdc",
+              "amount": "1000000000000000000000000000"
             },
             {
               "denom": "ausdt",
               "amount": "1000000000000000000000000000"
             },
             {
-              "denom": "ausdc",
-              "amount": "1000000000000000000000000000"
+              "denom": "wei",
+              "amount": "100000000000000000000000"
             }
           ]
         }
@@ -180,7 +180,7 @@
     "crisis": {
       "constant_fee": {
         "amount": "1000",
-        "denom": "anative"
+        "denom": "ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513"
       }
     },
     "distribution": {
