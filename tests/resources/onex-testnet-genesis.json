@@ -1,5 +1,5 @@
 {
-  "genesis_time": "2023-09-07T15:00:00.000Z",
+  "genesis_time": "2023-09-08T15:00:00.000Z",
   "chain_id": "onex",
   "initial_height": "1",
   "consensus_params": {
@@ -54,23 +54,23 @@
           "coins": [
             {
               "denom": "abtc",
-              "amount": "10000000000000000000000"
+              "amount": "150000000000000000000000"
             },
             {
-              "denom": "anative",
-              "amount": "1000000000000000000000000000"
+              "denom": "anom",
+              "amount": "100000000000000000000000000"
             },
             {
               "denom": "ausdc",
-              "amount": "1000000000000000000000000000"
+              "amount": "20000000000000000000000000000"
             },
             {
               "denom": "ausdt",
-              "amount": "1000000000000000000000000000"
+              "amount": "20000000000000000000000000000"
             },
             {
               "denom": "wei",
-              "amount": "100000000000000000000000"
+              "amount": "20000000000000000000000000"
             }
           ]
         }
@@ -180,7 +180,7 @@
     "crisis": {
       "constant_fee": {
         "amount": "1000",
-        "denom": "anative"
+        "denom": "anom"
       }
     },
     "distribution": {
@@ -214,7 +214,7 @@
         "min_deposit": [
           {
             "amount": "500000000000000000000",
-            "denom": "anative"
+            "denom": "ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513"
           }
         ]
       },
@@ -270,7 +270,7 @@
       "memberList": [],
       "orderList": [],
       "params": {
-        "burn_coin": "anative",
+        "burn_coin": "anom",
         "burn_rate": "1000",
         "earn_rates": "0500,0300,0200",
         "market_fee": "0030"
@@ -288,7 +288,7 @@
         "inflation_max": "0.0",
         "inflation_min": "0.0",
         "inflation_rate_change": "0.0",
-        "mint_denom": "anative"
+        "mint_denom": "nothing"
       }
     },
     "params": null,
@@ -309,7 +309,7 @@
       "last_total_power": "0",
       "last_validator_powers": [],
       "params": {
-        "bond_denom": "anative",
+        "bond_denom": "ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513",
         "historical_entries": 10000,
         "max_entries": 7,
         "max_validators": 100,

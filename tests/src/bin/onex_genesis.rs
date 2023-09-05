@@ -32,6 +32,10 @@ use onomy_test_lib::{
 use serde_json::Value;
 use tokio::time::sleep;
 
+// NOTE: this test needs to have the `spawn_time` and `genesis_time` set to a
+// little before the date that this test is run, otherwise the consumer will not
+// start on time or the test will not be able to query some things
+
 const CONSUMER_ID: &str = "onex";
 const PROVIDER_ACCOUNT_PREFIX: &str = "onomy";
 const CONSUMER_ACCOUNT_PREFIX: &str = "onomy";
@@ -78,9 +82,7 @@ pub async fn onexd_setup(
         .stack()?;
 
     fast_block_times(daemon_home).await.stack()?;
-    set_minimum_gas_price(daemon_home, "1anative")
-        .await
-        .stack()?;
+    set_minimum_gas_price(daemon_home, "1anom").await.stack()?;
 
     FileOptions::write_str(
         &format!("/logs/{chain_id}_genesis.json"),
@@ -134,7 +136,7 @@ async fn container_runner(args: &Args) -> Result<()> {
     write_hermes_config(
         &[
             HermesChainConfig::new("onomy", "onomy", false, "anom", true),
-            HermesChainConfig::new(CONSUMER_ID, CONSUMER_ACCOUNT_PREFIX, true, "anative", true),
+            HermesChainConfig::new(CONSUMER_ID, CONSUMER_ACCOUNT_PREFIX, true, "anom", true),
         ],
         &format!("{dockerfiles_dir}/dockerfile_resources"),
     )
@@ -273,7 +275,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
 
     let mut cosmovisor_runner = cosmovisor_start("onomyd_runner.log", None).await.stack()?;
 
-    //let proposal = onomy_test_lib::setups::test_proposal(consumer_id, "anative");
+    //let proposal = onomy_test_lib::setups::test_proposal(consumer_id, "anom");
     let proposal = PROPOSAL;
     info!("PROPOSAL: {proposal}");
     let ccvconsumer_state = cosmovisor_add_consumer(daemon_home, consumer_id, proposal)
@@ -457,7 +459,7 @@ async fn consumer(args: &Args) -> Result<()> {
 
     let amount = u256!(100000000000000000);
     let amount_sqr = amount.checked_mul(amount).unwrap();
-    let coin_pair = CoinPair::new("anative", ibc_nom).stack()?;
+    let coin_pair = CoinPair::new("anom", ibc_nom).stack()?;
     let mut market = Market::new("validator", &format!("1000000{ibc_nom}"));
     market.max_gas = Some(u256!(300000));
     market
@@ -513,7 +515,7 @@ async fn consumer(args: &Args) -> Result<()> {
         "--min-self-delegation",
         "1",
         "--amount",
-        &token18(1.0e3, "anative"),
+        &token18(1.0e3, ibc_nom),
         "--fees",
         &format!("1000000{ONOMY_IBC_NOM}"),
         "--pubkey",
@@ -533,8 +535,8 @@ async fn consumer(args: &Args) -> Result<()> {
 
     // TODO go back to using IBC NOM
     // but first, test governance with IBC NOM as the token
-    let test_crisis_denom = "anative";
-    let test_deposit = token18(2000.0, "anative");
+    let test_crisis_denom = ibc_nom.as_str();
+    let test_deposit = token18(2000.0, ibc_nom);
     wait_for_num_blocks(1).await.stack()?;
     cosmovisor_gov_file_proposal(
         daemon_home,
