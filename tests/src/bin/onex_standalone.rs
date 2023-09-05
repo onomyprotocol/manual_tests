@@ -67,7 +67,7 @@ async fn standalone_runner(args: &Args) -> Result<()> {
     let mut cosmovisor_runner = cosmovisor_start(&format!("{CHAIN_ID}d_runner.log"), None).await?;
 
     let mut market = Market::new("validator", "1000000anative");
-    market.gas = Some("300000".to_owned());
+    market.max_gas = Some(u256!(300000));
 
     let addr = &cosmovisor_get_addr("validator").await.stack()?;
     info!("{:?}", cosmovisor_get_balances(addr).await.stack()?);
@@ -84,7 +84,7 @@ async fn standalone_runner(args: &Args) -> Result<()> {
     market.show_pool(&coin_pair).await.stack()?;
     market.show_members(&coin_pair).await.stack()?;
     market
-        .market_order(coin_pair.coin_a(), coin_pair.coin_b(), large, 5000)
+        .market_order(coin_pair.coin_a(), large, coin_pair.coin_b(), large, 5000)
         .await
         .stack()?;
     market.redeem_drop(1).await.stack()?;

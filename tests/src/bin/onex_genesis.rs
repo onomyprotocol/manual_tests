@@ -459,7 +459,7 @@ async fn consumer(args: &Args) -> Result<()> {
     let amount_sqr = amount.checked_mul(amount).unwrap();
     let coin_pair = CoinPair::new("anative", ibc_nom).stack()?;
     let mut market = Market::new("validator", &format!("1000000{ibc_nom}"));
-    market.gas = Some("300000".to_owned());
+    market.max_gas = Some(u256!(300000));
     market
         .create_pool(&coin_pair, amount, amount)
         .await
@@ -468,7 +468,7 @@ async fn consumer(args: &Args) -> Result<()> {
     market.show_pool(&coin_pair).await.stack()?;
     market.show_members(&coin_pair).await.stack()?;
     market
-        .market_order(coin_pair.coin_a(), coin_pair.coin_b(), amount, 5000)
+        .market_order(coin_pair.coin_a(), amount, coin_pair.coin_b(), amount, 5000)
         .await
         .stack()?;
     market.redeem_drop(1).await.stack()?;
@@ -513,7 +513,7 @@ async fn consumer(args: &Args) -> Result<()> {
         "--min-self-delegation",
         "1",
         "--amount",
-        &token18(1.0e3, ONOMY_IBC_NOM),
+        &token18(1.0e3, "anative"),
         "--fees",
         &format!("1000000{ONOMY_IBC_NOM}"),
         "--pubkey",
@@ -531,9 +531,10 @@ async fn consumer(args: &Args) -> Result<()> {
     // termination signal
     nm_onomyd.recv::<()>().await.stack()?;
 
+    // TODO go back to using IBC NOM
     // but first, test governance with IBC NOM as the token
-    let test_crisis_denom = ONOMY_IBC_NOM;
-    let test_deposit = token18(2000.0, ONOMY_IBC_NOM);
+    let test_crisis_denom = "anative";
+    let test_deposit = token18(2000.0, "anative");
     wait_for_num_blocks(1).await.stack()?;
     cosmovisor_gov_file_proposal(
         daemon_home,
