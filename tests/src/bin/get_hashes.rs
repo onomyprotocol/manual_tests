@@ -15,11 +15,18 @@ async fn main() -> Result<()> {
         .run_with_input_to_completion(genesis.as_bytes())
         .await
         .stack()?;
-    comres.assert_success()?;
-    println!("{}", comres.stdout);
+    comres.assert_success().stack()?;
+    let comres = Command::new("openssl base64 -A", &[])
+        .ci_mode(true)
+        .run_with_input_to_completion(&comres.stdout)
+        .await
+        .stack()?;
+    comres.assert_success().stack()?;
+    println!("{}", comres.stdout_as_str().stack()?);
 
-    // cat ./tests/resources/onex-testnet-genesis.json | openssl dgst -binary -sha256 | openssl base64 -A
-    
+    // cat ./tests/resources/onex-testnet-genesis.json | openssl dgst -binary
+    // -sha256 | openssl base64 -A
+
     //cat onexd | openssl dgst -binary -sha256 |
     // openssl base64 -A wget https://github.com/onomyprotocol/multiverse/releases/download/v0.1.0.1-onex/onexd
 

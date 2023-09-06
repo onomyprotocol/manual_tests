@@ -36,7 +36,8 @@ use tokio::time::sleep;
 // little before the date that this test is run, otherwise the consumer will not
 // start on time or the test will not be able to query some things
 
-const CONSUMER_ID: &str = "onex";
+const CONSUMER_ID: &str = "onex-testnet-1";
+const CONSUMER_HOSTNAME: &str = "onexd";
 const PROVIDER_ACCOUNT_PREFIX: &str = "onomy";
 const CONSUMER_ACCOUNT_PREFIX: &str = "onomy";
 const PROPOSAL: &str = include_str!("./../../resources/onex-testnet-genesis-proposal.json");
@@ -135,8 +136,15 @@ async fn container_runner(args: &Args) -> Result<()> {
     // prepare hermes config
     write_hermes_config(
         &[
-            HermesChainConfig::new("onomy", "onomy", false, "anom", true),
-            HermesChainConfig::new(CONSUMER_ID, CONSUMER_ACCOUNT_PREFIX, true, "anom", true),
+            HermesChainConfig::new("onomy", "onomyd", "onomy", false, "anom", true),
+            HermesChainConfig::new(
+                CONSUMER_ID,
+                CONSUMER_HOSTNAME,
+                CONSUMER_ACCOUNT_PREFIX,
+                true,
+                "anom",
+                true,
+            ),
         ],
         &format!("{dockerfiles_dir}/dockerfile_resources"),
     )
@@ -255,9 +263,8 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
     let mut nm_consumer =
-        NetMessenger::connect(STD_TRIES, STD_DELAY, &format!("{consumer_id}d:26001"))
+        NetMessenger::connect(STD_TRIES, STD_DELAY, &format!("{CONSUMER_HOSTNAME}:26001"))
             .await
-            .stack()
             .stack()?;
 
     let mnemonic = FileOptions::read_to_string("/resources/mnemonic.txt")

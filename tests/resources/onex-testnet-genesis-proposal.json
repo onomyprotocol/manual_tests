@@ -1,14 +1,14 @@
 {
     "title": "Propose the addition of a new chain",
     "description": "Add the ONEX consumer chain",
-    "chain_id": "onex",
+    "chain_id": "onex-testnet-1",
     "initial_height": {
         "revision_number": 0,
         "revision_height": 1
     },
     "genesis_hash": "i+VZWYnwMDnDUGnERPiBq9rjOAgjUYmXuFVL3ztgU3s=",
     "binary_hash": "tGNjvGlyWr6DfPM3znNQxBfFhc8dSs2Hb/K7i9hG6gw=",
-    "spawn_time": "2023-09-07T15:00:00.000Z",
+    "spawn_time": "2023-09-06T15:00:00.000Z",
     "unbonding_period": 1728000000000000,
     "consumer_redistribution_fraction": "0.5",
     "provider_reward_denoms": [

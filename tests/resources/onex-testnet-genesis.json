@@ -1,6 +1,6 @@
 {
-  "genesis_time": "2023-09-08T15:00:00.000Z",
-  "chain_id": "onex",
+  "genesis_time": "2023-09-06T15:00:00.000Z",
+  "chain_id": "onex-testnet-1",
   "initial_height": "1",
   "consensus_params": {
     "block": {

@@ -96,7 +96,7 @@ pub async fn onomyd_setup(daemon_home: &str) -> Result<String> {
     )
     .run_with_input_to_completion(mnemonic.as_bytes())
     .await?;
-    comres.assert_success()?;
+    comres.assert_success().stack()?;
 
     sh_cosmovisor("add-genesis-account validator", &[&nom(2.0e6)]).await?;
 
@@ -162,7 +162,7 @@ pub async fn havend_setup(
     )
     .run_with_input_to_completion(mnemonic.as_bytes())
     .await?;
-    comres.assert_success()?;
+    comres.assert_success().stack()?;
 
     fast_block_times(daemon_home).await?;
     set_minimum_gas_price(daemon_home, "1akudos").await?;
@@ -212,8 +212,15 @@ async fn container_runner(args: &Args) -> Result<()> {
     // prepare hermes config
     write_hermes_config(
         &[
-            HermesChainConfig::new("onomy", "onomy", false, "anom", true),
-            HermesChainConfig::new(CONSUMER_ID, CONSUMER_ACCOUNT_PREFIX, true, "akudos", true),
+            HermesChainConfig::new("onomy", "onomyd", "onomy", false, "anom", true),
+            HermesChainConfig::new(
+                CONSUMER_ID,
+                &format!("{CONSUMER_ID}d"),
+                CONSUMER_ACCOUNT_PREFIX,
+                true,
+                "akudos",
+                true,
+            ),
         ],
         &format!("{dockerfiles_dir}/dockerfile_resources"),
     )
