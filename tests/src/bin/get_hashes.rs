@@ -24,5 +24,7 @@ async fn main() -> Result<()> {
     comres.assert_success().stack()?;
     println!("{}", comres.stdout_as_str().stack()?);
 
+    //cat ./tests/resources/onex-testnet-genesis.json | openssl dgst -binary -sha256 | openssl base64 -A
+
     Ok(())
 }
