@@ -37,7 +37,7 @@ use tokio::time::sleep;
 // start on time or the test will not be able to query some things
 
 const CONSUMER_ID: &str = "onex-testnet-1";
-const CONSUMER_HOSTNAME: &str = "onexd";
+const CONSUMER_HOSTNAME: &str = "consumer";
 const PROVIDER_ACCOUNT_PREFIX: &str = "onomy";
 const CONSUMER_ACCOUNT_PREFIX: &str = "onomy";
 const PROPOSAL: &str = include_str!("./../../resources/onex-testnet-genesis-proposal.json");
@@ -179,7 +179,7 @@ async fn container_runner(args: &Args) -> Result<()> {
                 ("./tests/resources/", "/resources/"),
             ]),
             Container::new(
-                "onexd",
+                CONSUMER_HOSTNAME,
                 Dockerfile::Contents(dockerfile_onexd()),
                 entrypoint,
                 &["--entry-name", "consumer"],

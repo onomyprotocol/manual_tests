@@ -3,7 +3,7 @@
     "description": "Add the ONEX consumer chain",
     "chain_id": "onex-testnet-1",
     "initial_height": {
-        "revision_number": 0,
+        "revision_number": 1,
         "revision_height": 1
     },
     "genesis_hash": "i+VZWYnwMDnDUGnERPiBq9rjOAgjUYmXuFVL3ztgU3s=",
