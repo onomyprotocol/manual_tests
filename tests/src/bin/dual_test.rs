@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use common::{dockerfile_onomyd};
+use common::dockerfile_onomyd;
 use onomy_test_lib::{
     cosmovisor::cosmovisor_start,
     dockerfiles::dockerfile_hermes,
