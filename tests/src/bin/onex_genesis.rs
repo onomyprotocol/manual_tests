@@ -37,11 +37,15 @@ use tokio::time::sleep;
 // start on time or the test will not be able to query some things
 
 const CONSUMER_ID: &str = "onex-testnet-1";
-const CONSUMER_HOSTNAME: &str = "consumer";
 const PROVIDER_ACCOUNT_PREFIX: &str = "onomy";
 const CONSUMER_ACCOUNT_PREFIX: &str = "onomy";
-const PROPOSAL: &str = include_str!("./../../resources/onex-testnet-genesis-proposal.json");
-const GENESIS: &str = include_str!("./../../resources/onex-testnet-genesis.json");
+const PROPOSAL: &str =
+    include_str!("./../../../../market/tools/config/testnet/onex-testnet-genesis-proposal.json");
+const GENESIS: &str =
+    include_str!("./../../../../market/tools/config/testnet/onex-testnet-genesis.json");
+// set both times to this for testing purposes, this needs to be in the past but
+// not more than 28 days ago
+const TIME: &str = "2023-09-08T15:00:00.000Z";
 
 pub async fn onexd_setup(
     daemon_home: &str,
@@ -63,6 +67,8 @@ pub async fn onexd_setup(
     let genesis_s = GENESIS;
 
     let mut genesis: Value = serde_json::from_str(genesis_s).stack()?;
+
+    genesis["genesis_time"] = TIME.into();
 
     let ccvconsumer_state: Value = serde_json::from_str(ccvconsumer_state_s).stack()?;
     genesis["app_state"]["ccvconsumer"] = ccvconsumer_state;
@@ -133,24 +139,6 @@ async fn container_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    // prepare hermes config
-    write_hermes_config(
-        &[
-            HermesChainConfig::new("onomy", "onomyd", "onomy", false, "anom", true),
-            HermesChainConfig::new(
-                CONSUMER_ID,
-                CONSUMER_HOSTNAME,
-                CONSUMER_ACCOUNT_PREFIX,
-                true,
-                "anom",
-                true,
-            ),
-        ],
-        &format!("{dockerfiles_dir}/dockerfile_resources"),
-    )
-    .await
-    .stack()?;
-
     let entrypoint = Some(format!(
         "./target/{container_target}/release/{bin_entrypoint}"
     ));
@@ -179,7 +167,7 @@ async fn container_runner(args: &Args) -> Result<()> {
                 ("./tests/resources/", "/resources/"),
             ]),
             Container::new(
-                CONSUMER_HOSTNAME,
+                "consumer",
                 Dockerfile::Contents(dockerfile_onexd()),
                 entrypoint,
                 &["--entry-name", "consumer"],
@@ -193,10 +181,39 @@ async fn container_runner(args: &Args) -> Result<()> {
         true,
         logs_dir,
     )
-    .stack()?
-    .add_common_volumes(&[(logs_dir, "/logs")]);
+    .stack()?;
+    cn.add_common_volumes(&[(logs_dir, "/logs")]);
+    let uuid = cn.uuid_as_string();
+    cn.add_common_entrypoint_args(&["--uuid", &uuid]);
+
+    // prepare hermes config
+    write_hermes_config(
+        &[
+            HermesChainConfig::new(
+                "onomy",
+                &format!("onomyd_{uuid}"),
+                "onomy",
+                false,
+                "anom",
+                true,
+            ),
+            HermesChainConfig::new(
+                CONSUMER_ID,
+                &format!("consumer_{uuid}"),
+                CONSUMER_ACCOUNT_PREFIX,
+                true,
+                "anom",
+                true,
+            ),
+        ],
+        &format!("{dockerfiles_dir}/dockerfile_resources"),
+    )
+    .await
+    .stack()?;
+
     cn.run_all(true).await.stack()?;
     cn.wait_with_timeout_all(true, TIMEOUT).await.stack()?;
+    cn.terminate_all().await;
     Ok(())
 }
 
@@ -257,13 +274,15 @@ async fn hermes_runner(args: &Args) -> Result<()> {
 }
 
 async fn onomyd_runner(args: &Args) -> Result<()> {
+    let uuid = &args.uuid;
     let consumer_id = CONSUMER_ID;
     let daemon_home = args.daemon_home.as_ref().stack()?;
-    let mut nm_hermes = NetMessenger::connect(STD_TRIES, STD_DELAY, "hermes:26000")
-        .await
-        .stack()?;
+    let mut nm_hermes =
+        NetMessenger::connect(STD_TRIES, STD_DELAY, &format!("hermes_{uuid}:26000"))
+            .await
+            .stack()?;
     let mut nm_consumer =
-        NetMessenger::connect(STD_TRIES, STD_DELAY, &format!("{CONSUMER_HOSTNAME}:26001"))
+        NetMessenger::connect(STD_TRIES, STD_DELAY, &format!("consumer_{uuid}:26001"))
             .await
             .stack()?;
 
@@ -283,7 +302,9 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
     let mut cosmovisor_runner = cosmovisor_start("onomyd_runner.log", None).await.stack()?;
 
     //let proposal = onomy_test_lib::setups::test_proposal(consumer_id, "anom");
-    let proposal = PROPOSAL;
+    let mut proposal: Value = serde_json::from_str(PROPOSAL).stack()?;
+    proposal["spawn_time"] = TIME.into();
+    let proposal = &proposal.to_string();
     info!("PROPOSAL: {proposal}");
     let ccvconsumer_state = cosmovisor_add_consumer(daemon_home, consumer_id, proposal)
         .await

@@ -261,7 +261,7 @@ async fn container_runner(args: &Args) -> Result<()> {
                 ),
             ]),
             Container::new(
-                "havend",
+                "consumer",
                 Dockerfile::Contents(dockerfile_havend()),
                 entrypoint,
                 &["--entry-name", "consumer"],
@@ -284,8 +284,10 @@ async fn container_runner(args: &Args) -> Result<()> {
         Some(dockerfiles_dir),
         true,
         logs_dir,
-    )?
-    .add_common_volumes(&[(logs_dir, "/logs")]);
+    )?;
+    cn.add_common_volumes(&[(logs_dir, "/logs")]);
+    let uuid = cn.uuid_as_string();
+    cn.add_common_entrypoint_args(&["--uuid", &uuid]);
     cn.run_all(true).await?;
     cn.wait_with_timeout_all(true, TIMEOUT).await?;
     Ok(())
@@ -326,13 +328,15 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
 }
 
 async fn onomyd_runner(args: &Args) -> Result<()> {
+    let uuid = &args.uuid;
     let consumer_id = CONSUMER_ID;
     let daemon_home = args.daemon_home.as_ref().stack()?;
-    let mut nm_hermes = NetMessenger::connect(STD_TRIES, STD_DELAY, "hermes:26000")
-        .await
-        .stack()?;
+    let mut nm_hermes =
+        NetMessenger::connect(STD_TRIES, STD_DELAY, &format!("hermes_{uuid}:26000"))
+            .await
+            .stack()?;
     let mut nm_consumer =
-        NetMessenger::connect(STD_TRIES, STD_DELAY, &format!("{consumer_id}d:26001"))
+        NetMessenger::connect(STD_TRIES, STD_DELAY, &format!("consumer_{uuid}:26001"))
             .await
             .stack()?;
 

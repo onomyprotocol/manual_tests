@@ -22,9 +22,10 @@ async fn main() -> Result<()> {
         .await
         .stack()?;
     comres.assert_success().stack()?;
-    println!("{}", comres.stdout_as_str().stack()?);
+    println!("{}", comres.stdout_as_utf8().stack()?);
 
-    //cat ./tests/resources/onex-testnet-genesis.json | openssl dgst -binary -sha256 | openssl base64 -A
+    //cat ./tests/resources/onex-testnet-genesis.json | openssl dgst -binary
+    // -sha256 | openssl base64 -A
 
     Ok(())
 }
