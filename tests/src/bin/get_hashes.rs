@@ -1,18 +1,19 @@
 use onomy_test_lib::super_orchestrator::{
     stacked_errors::{Result, StackableErr},
-    std_init, Command, FileOptions,
+    std_init, Command,
 };
+
+const FILE: &str =
+    include_str!("./../../../../market/tools/config/testnet/onex-testnet-genesis.json");
 
 #[tokio::main]
 async fn main() -> Result<()> {
     std_init()?;
 
-    let genesis = FileOptions::read_to_string("./tests/resources/onex-testnet-genesis.json")
-        .await
-        .stack()?;
+    let file = FILE;
     let comres = Command::new("openssl dgst -binary -sha256", &[])
         .ci_mode(true)
-        .run_with_input_to_completion(genesis.as_bytes())
+        .run_with_input_to_completion(file.as_bytes())
         .await
         .stack()?;
     comres.assert_success().stack()?;
