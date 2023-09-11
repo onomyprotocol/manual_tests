@@ -1,6 +1,9 @@
 use onomy_test_lib::{
     dockerfiles::dockerfile_hermes,
-    hermes::{hermes_start, sh_hermes, write_hermes_config, HermesChainConfig},
+    hermes::{
+        create_channel_pair, create_connection_pair, hermes_start, sh_hermes, write_hermes_config,
+        HermesChainConfig,
+    },
     ibc::IbcPair,
     onomy_std_init,
     super_orchestrator::{
@@ -13,11 +16,10 @@ use onomy_test_lib::{
 };
 use tokio::time::sleep;
 
-const ONOMY_NODE: &str = "http://34.28.227.180:26657";
-const CONSUMER_NODE: &str = "";
+const ONOMY_NODE: &str = "34.145.158.212";
+const CONSUMER_NODE: &str = "34.145.158.212";
 const ONOMY_CHAIN_ID: &str = "onomy-testnet-1";
 const CONSUMER_CHAIN_ID: &str = "onex-testnet-1";
-const PROVIDER_MNEMONIC: &str = include_str!("./../../../../testnet_provider_mnemonic.txt");
 const DEALER_MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
 
 #[tokio::main]
@@ -71,19 +73,25 @@ async fn container_runner(args: &Args) -> Result<()> {
     let uuid = cn.uuid_as_string();
     cn.add_common_entrypoint_args(&["--uuid", &uuid]);
 
+    let mut onex_hermes = HermesChainConfig::new(
+        CONSUMER_CHAIN_ID,
+        CONSUMER_NODE,
+        "onomy",
+        true,
+        "anom",
+        false,
+    );
+    onex_hermes.rpc_addr = format!("http://{CONSUMER_NODE}:36657");
+    onex_hermes.grpc_addr = format!("http://{CONSUMER_NODE}:9292");
+    onex_hermes.event_addr = format!("ws://{CONSUMER_NODE}:36657/websocket");
+
+    let mut onomy_hermes =
+        HermesChainConfig::new(ONOMY_CHAIN_ID, ONOMY_NODE, "onomy", false, "anom", false);
+    onomy_hermes.grpc_addr = format!("http://{ONOMY_NODE}:9191");
+
     // prepare hermes config
     write_hermes_config(
-        &[
-            HermesChainConfig::new(ONOMY_CHAIN_ID, ONOMY_NODE, "onomy", false, "anom", false),
-            HermesChainConfig::new(
-                CONSUMER_CHAIN_ID,
-                CONSUMER_NODE,
-                "onomy",
-                true,
-                "anom",
-                false,
-            ),
-        ],
+        &[onomy_hermes, onex_hermes],
         &format!("{dockerfiles_dir}/dockerfile_resources"),
     )
     .await
@@ -96,20 +104,16 @@ async fn container_runner(args: &Args) -> Result<()> {
 }
 
 async fn hermes_runner(_args: &Args) -> Result<()> {
-    let provider_mnemonic = PROVIDER_MNEMONIC;
     let dealer_mnemonic = DEALER_MNEMONIC;
 
     // set keys for our chains
-    FileOptions::write_str("/root/.hermes/provider_mnemonic.txt", provider_mnemonic)
-        .await
-        .stack()?;
     FileOptions::write_str("/root/.hermes/dealer_mnemonic.txt", dealer_mnemonic)
         .await
         .stack()?;
 
     sh_hermes(
         &format!(
-            "keys add --chain {ONOMY_CHAIN_ID} --mnemonic-file /root/.hermes/provider_mnemonic.txt"
+            "keys add --chain {ONOMY_CHAIN_ID} --mnemonic-file /root/.hermes/dealer_mnemonic.txt"
         ),
         &[],
     )
@@ -125,12 +129,70 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
     .await
     .stack()?;
 
-    // this needs to be done just once
-    let ibc_pair = IbcPair::hermes_setup_ics_pair(CONSUMER_CHAIN_ID, ONOMY_CHAIN_ID).await?;
+    // NOTE: if failure occurs in the middle, you will need to comment out parts
+    // that have already succeeded
+
+    // a client is already created because of the ICS setup
+    //let client_pair = create_client_pair(a_chain, b_chain).await.stack()?;
+    // create one client and connection pair that will be used for IBC transfer and
+    // ICS communication
+    let connection_pair = create_connection_pair(&CONSUMER_CHAIN_ID, &ONOMY_CHAIN_ID)
+        .await
+        .stack()?;
+
+    create_channel_pair(
+        &CONSUMER_CHAIN_ID,
+        &connection_pair.0,
+        "consumer",
+        "provider",
+        true,
+    )
+    .await
+    .stack()?;
+
+    let provider = ONOMY_CHAIN_ID;
+    let consumer = CONSUMER_CHAIN_ID;
+    let consumer_channel = "channel-1";
+    let consumer_connection = "connection-0";
+    let provider_connection = "connection-12";
+    sh_hermes(
+        &format!(
+            "tx chan-open-try --dst-chain {provider} --src-chain {consumer} --dst-connection \
+             {provider_connection} --dst-port transfer --src-port transfer --src-channel \
+             {consumer_channel}"
+        ),
+        &[],
+    )
+    .await
+    .stack()?;
+
+    let provider_channel = "channel-4";
+
+    sh_hermes(
+        &format!(
+            "tx chan-open-ack --dst-chain {consumer} --src-chain {provider} --dst-connection \
+             {consumer_connection} --dst-port transfer --src-port transfer --dst-channel \
+             {consumer_channel} --src-channel {provider_channel}"
+        ),
+        &[],
+    )
+    .await
+    .stack()?;
+
+    sh_hermes(
+        &format!(
+            "tx chan-open-confirm --dst-chain {provider} --src-chain {consumer} --dst-connection \
+             {provider_connection} --dst-port transfer --src-port transfer --dst-channel \
+             {provider_channel} --src-channel {consumer_channel}"
+        ),
+        &[],
+    )
+    .await
+    .stack()?;
 
     // then we need to relay
-    let mut hermes_runner = hermes_start("/logs/hermes_bootstrap_runner.log").await?;
-    ibc_pair.hermes_check_acks().await.stack()?;
+    let mut hermes_runner = hermes_start("/logs/hermes_ics_runner.log").await.stack()?;
+    //ibc_pair.hermes_check_acks().await.stack()?;
 
     sleep(TIMEOUT).await;
 
