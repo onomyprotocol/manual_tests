@@ -58,7 +58,8 @@ async fn onexd_runner(args: &Args) -> Result<()> {
 
     // cosmovisor run query ibc-transfer denom-traces
 
-    // cosmovisor run query bank balances onomy1yks83spz6lvrrys8kh0untt22399tskk6jafcv
+    // cosmovisor run query bank balances
+    // onomy1yks83spz6lvrrys8kh0untt22399tskk6jafcv
 
     sleep(TIMEOUT).await;
 

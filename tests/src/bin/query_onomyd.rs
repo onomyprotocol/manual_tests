@@ -53,9 +53,9 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
     .stack()?;
     comres.assert_success().stack()?;
 
-    let addr = &cosmovisor_get_addr("validator").await.stack()?;
+    let _addr = &cosmovisor_get_addr("validator").await.stack()?;
 
-    let ibc_pair = IbcPair {
+    let _ibc_pair = IbcPair {
         a: IbcSide {
             chain_id: "onex-testnet-1".to_owned(),
             connection: "connection-0".to_owned(),
@@ -69,6 +69,35 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
             ics_channel: "channel-3".to_owned(), // ?
         },
     };
+
+    /*
+        Chain: onomy-testnet-1
+      - Client: 07-tendermint-4
+        * Connection: connection-12
+          | State: OPEN
+          | Counterparty state: OPEN
+          + Channel: channel-3
+            | Port: provider
+            | State: OPEN
+            | Counterparty: channel-0
+          + Channel: channel-4
+            | Port: transfer
+            | State: OPEN
+            | Counterparty: channel-1
+    # Chain: onex-testnet-1
+      - Client: 07-tendermint-0
+        * Connection: connection-0
+          | State: OPEN
+          | Counterparty state: OPEN
+          + Channel: channel-0
+            | Port: consumer
+            | State: OPEN
+            | Counterparty: channel-3
+          + Channel: channel-1
+            | Port: transfer
+            | State: OPEN
+            | Counterparty: channel-4
+         */
 
     sleep(TIMEOUT).await;
 

@@ -1,10 +1,6 @@
 use onomy_test_lib::{
     dockerfiles::dockerfile_hermes,
-    hermes::{
-        create_channel_pair, create_connection_pair, hermes_start, sh_hermes, write_hermes_config,
-        HermesChainConfig,
-    },
-    ibc::IbcPair,
+    hermes::{hermes_start, sh_hermes, write_hermes_config, HermesChainConfig},
     onomy_std_init,
     super_orchestrator::{
         docker::{Container, ContainerNetwork, Dockerfile},
@@ -181,9 +177,9 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
 
         sh_hermes(
             &format!(
-                "tx chan-open-confirm --dst-chain {provider} --src-chain {consumer} --dst-connection \
-                 {provider_connection} --dst-port transfer --src-port transfer --dst-channel \
-                 {provider_channel} --src-channel {consumer_channel}"
+                "tx chan-open-confirm --dst-chain {provider} --src-chain {consumer} \
+                --dst-connection {provider_connection} --dst-port transfer --src-port transfer \
+                --dst-channel {provider_channel} --src-channel {consumer_channel}"
             ),
             &[],
         )
