@@ -7,7 +7,7 @@ use onomy_test_lib::{
         stacked_errors::{Error, Result, StackableErr},
         Command,
     },
-    token18, Args, TIMEOUT,
+    Args, TIMEOUT,
 };
 use tokio::time::sleep;
 
