@@ -1,9 +1,13 @@
 use common::{container_runner, dockerfile_onomyd};
 use onomy_test_lib::{
-    cosmovisor::sh_cosmovisor,
+    cosmovisor::{cosmovisor_get_addr, sh_cosmovisor},
+    ibc::{IbcPair, IbcSide},
     onomy_std_init,
-    super_orchestrator::stacked_errors::{Error, Result, StackableErr},
-    Args, TIMEOUT,
+    super_orchestrator::{
+        stacked_errors::{Error, Result, StackableErr},
+        Command,
+    },
+    token18, Args, TIMEOUT,
 };
 use tokio::time::sleep;
 
@@ -11,6 +15,7 @@ use tokio::time::sleep;
 //const NODE: &str = "http://34.134.208.167:26657";
 const NODE: &str = "http://34.145.158.212:26657";
 const CHAIN_ID: &str = "onomy-testnet-1";
+const MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -28,13 +33,42 @@ async fn main() -> Result<()> {
     }
 }
 
-async fn onomyd_runner(_args: &Args) -> Result<()> {
-    //let daemon_home = args.daemon_home.as_ref().stack()?;
+async fn onomyd_runner(args: &Args) -> Result<()> {
+    let daemon_home = args.daemon_home.as_ref().stack()?;
 
     sh_cosmovisor("config node", &[NODE]).await.stack()?;
     sh_cosmovisor("config chain-id", &[CHAIN_ID])
         .await
         .stack()?;
+    sh_cosmovisor("config keyring-backend test", &[])
+        .await
+        .stack()?;
+
+    let comres = Command::new(
+        &format!("{daemon_home}/cosmovisor/current/bin/onomyd keys add validator --recover"),
+        &[],
+    )
+    .run_with_input_to_completion(MNEMONIC.as_bytes())
+    .await
+    .stack()?;
+    comres.assert_success().stack()?;
+
+    let addr = &cosmovisor_get_addr("validator").await.stack()?;
+
+    let ibc_pair = IbcPair {
+        a: IbcSide {
+            chain_id: "onex-testnet-1".to_owned(),
+            connection: "connection-0".to_owned(),
+            transfer_channel: "channel-1".to_owned(),
+            ics_channel: "channel-0".to_owned(),
+        },
+        b: IbcSide {
+            chain_id: CHAIN_ID.to_owned(),
+            connection: "connection-12".to_owned(),
+            transfer_channel: "channel-4".to_owned(),
+            ics_channel: "channel-3".to_owned(), // ?
+        },
+    };
 
     sleep(TIMEOUT).await;
 

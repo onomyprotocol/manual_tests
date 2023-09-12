@@ -131,65 +131,65 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
 
     // NOTE: if failure occurs in the middle, you will need to comment out parts
     // that have already succeeded
+    /*
+        // a client is already created because of the ICS setup
+        //let client_pair = create_client_pair(a_chain, b_chain).await.stack()?;
+        // create one client and connection pair that will be used for IBC transfer and
+        // ICS communication
+        let connection_pair = create_connection_pair(&CONSUMER_CHAIN_ID, &ONOMY_CHAIN_ID)
+            .await
+            .stack()?;
 
-    // a client is already created because of the ICS setup
-    //let client_pair = create_client_pair(a_chain, b_chain).await.stack()?;
-    // create one client and connection pair that will be used for IBC transfer and
-    // ICS communication
-    let connection_pair = create_connection_pair(&CONSUMER_CHAIN_ID, &ONOMY_CHAIN_ID)
+        create_channel_pair(
+            &CONSUMER_CHAIN_ID,
+            &connection_pair.0,
+            "consumer",
+            "provider",
+            true,
+        )
         .await
         .stack()?;
 
-    create_channel_pair(
-        &CONSUMER_CHAIN_ID,
-        &connection_pair.0,
-        "consumer",
-        "provider",
-        true,
-    )
-    .await
-    .stack()?;
+        let provider = ONOMY_CHAIN_ID;
+        let consumer = CONSUMER_CHAIN_ID;
+        let consumer_channel = "channel-1";
+        let consumer_connection = "connection-0";
+        let provider_connection = "connection-12";
+        sh_hermes(
+            &format!(
+                "tx chan-open-try --dst-chain {provider} --src-chain {consumer} --dst-connection \
+                 {provider_connection} --dst-port transfer --src-port transfer --src-channel \
+                 {consumer_channel}"
+            ),
+            &[],
+        )
+        .await
+        .stack()?;
 
-    let provider = ONOMY_CHAIN_ID;
-    let consumer = CONSUMER_CHAIN_ID;
-    let consumer_channel = "channel-1";
-    let consumer_connection = "connection-0";
-    let provider_connection = "connection-12";
-    sh_hermes(
-        &format!(
-            "tx chan-open-try --dst-chain {provider} --src-chain {consumer} --dst-connection \
-             {provider_connection} --dst-port transfer --src-port transfer --src-channel \
-             {consumer_channel}"
-        ),
-        &[],
-    )
-    .await
-    .stack()?;
+        let provider_channel = "channel-4";
 
-    let provider_channel = "channel-4";
+        sh_hermes(
+            &format!(
+                "tx chan-open-ack --dst-chain {consumer} --src-chain {provider} --dst-connection \
+                 {consumer_connection} --dst-port transfer --src-port transfer --dst-channel \
+                 {consumer_channel} --src-channel {provider_channel}"
+            ),
+            &[],
+        )
+        .await
+        .stack()?;
 
-    sh_hermes(
-        &format!(
-            "tx chan-open-ack --dst-chain {consumer} --src-chain {provider} --dst-connection \
-             {consumer_connection} --dst-port transfer --src-port transfer --dst-channel \
-             {consumer_channel} --src-channel {provider_channel}"
-        ),
-        &[],
-    )
-    .await
-    .stack()?;
-
-    sh_hermes(
-        &format!(
-            "tx chan-open-confirm --dst-chain {provider} --src-chain {consumer} --dst-connection \
-             {provider_connection} --dst-port transfer --src-port transfer --dst-channel \
-             {provider_channel} --src-channel {consumer_channel}"
-        ),
-        &[],
-    )
-    .await
-    .stack()?;
-
+        sh_hermes(
+            &format!(
+                "tx chan-open-confirm --dst-chain {provider} --src-chain {consumer} --dst-connection \
+                 {provider_connection} --dst-port transfer --src-port transfer --dst-channel \
+                 {provider_channel} --src-channel {consumer_channel}"
+            ),
+            &[],
+        )
+        .await
+        .stack()?;
+    */
     // then we need to relay
     let mut hermes_runner = hermes_start("/logs/hermes_ics_runner.log").await.stack()?;
     //ibc_pair.hermes_check_acks().await.stack()?;
