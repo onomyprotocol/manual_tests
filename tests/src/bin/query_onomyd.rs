@@ -99,6 +99,14 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
             | Counterparty: channel-4
          */
 
+    // sequence 4
+    // cosmovisor run tx ibc-transfer transfer transfer channel-4 onomy1yks83spz6lvrrys8kh0untt22399tskk6jafcv 100000000000anom --from validator -y -b block --fees 1000000anom --gas 1000000 --packet-timeout-timestamp 60000000000
+
+    // E4D309024FC4EA60B761E739C2AF998D246546245CCCE6F213D35DF868FA1D20
+
+    //      100000000000anom
+    //999999799993251769
+
     sleep(TIMEOUT).await;
 
     Ok(())

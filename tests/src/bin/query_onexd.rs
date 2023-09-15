@@ -37,6 +37,13 @@ async fn onexd_runner(args: &Args) -> Result<()> {
 
     // http://34.85.152.11:36657/validators?
 
+    // in order to access the 1317 port locally, use `docker inspect` to find the IP address of
+    // the container from the host
+    // http://172.21.0.2:1317/
+    // may need to use
+    //enable_swagger_apis(daemon_home).await.stack()?;
+    // but note it may take over a minute to start up
+
     let daemon_home = args.daemon_home.clone().stack()?;
 
     sh_cosmovisor("config node", &[NODE]).await.stack()?;
@@ -58,9 +65,14 @@ async fn onexd_runner(args: &Args) -> Result<()> {
 
     // cosmovisor run query ibc-transfer denom-traces
 
-    // cosmovisor run query bank balances
-    // onomy1yks83spz6lvrrys8kh0untt22399tskk6jafcv
+    // cosmovisor run query bank balances onomy1yks83spz6lvrrys8kh0untt22399tskk6jafcv
 
+    // 20000000000000000000000000
+
+    // cosmovisor run query bank balances onomy17sael2kcmm8npe2pmkxj3un90xfg60vvw5smjc
+
+    // cosmovisor run query bank total
+    // cosmovisor run query bank total
     sleep(TIMEOUT).await;
 
     Ok(())

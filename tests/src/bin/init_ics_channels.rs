@@ -190,6 +190,18 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
     let mut hermes_runner = hermes_start("/logs/hermes_ics_runner.log").await.stack()?;
     //ibc_pair.hermes_check_acks().await.stack()?;
 
+    // hermes query packet pending --chain onomy-testnet-1 --port transfer --channel channel-4
+
+    // CBC24F131C1128CAA18143EC2AFF01EF7170FE7957715D0DF7BEE21C6B6EE8F9
+
+    // hermes tx ft-transfer --dst-chain onex-testnet-1 --src-chain onomy-testnet-1 --src-port transfer --src-channel channel-4 --amount 100000000000 --denom anom --timeout-height-offset 10 --timeout-seconds 60
+
+    // 20000000 000000000000000000
+    // 100000000000000000000000
+
+    // NOTE: must use a ed25519 tendermint key
+    // cosmovisor run tx staking create-validator --commission-max-change-rate 0.01 --commission-max-rate 0.10 --commission-rate 0.05 --min-self-delegation 1 --amount 100000000000ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513 --from validator --pubkey '{"@type":"/cosmos.crypto.ed25519.PubKey","key":"1vMo7NN5rvX06zVmJ61KG00/KZB0H3rsmsoslRyaBds="}' -y -b block --fees 1000000anom
+
     sleep(TIMEOUT).await;
 
     hermes_runner.terminate(TIMEOUT).await.stack()?;
