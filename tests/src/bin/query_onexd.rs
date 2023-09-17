@@ -37,8 +37,8 @@ async fn onexd_runner(args: &Args) -> Result<()> {
 
     // http://34.85.152.11:36657/validators?
 
-    // in order to access the 1317 port locally, use `docker inspect` to find the IP address of
-    // the container from the host
+    // in order to access the 1317 port locally, use `docker inspect` to find the IP
+    // address of the container from the host
     // http://172.21.0.2:1317/
     // may need to use
     //enable_swagger_apis(daemon_home).await.stack()?;
@@ -54,25 +54,15 @@ async fn onexd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    let comres = Command::new(
+    /*let comres = Command::new(
         &format!("{daemon_home}/cosmovisor/current/bin/onexd keys add validator --recover"),
         &[],
     )
     .run_with_input_to_completion(MNEMONIC.as_bytes())
     .await
     .stack()?;
-    comres.assert_success().stack()?;
+    comres.assert_success().stack()?;*/
 
-    // cosmovisor run query ibc-transfer denom-traces
-
-    // cosmovisor run query bank balances onomy1yks83spz6lvrrys8kh0untt22399tskk6jafcv
-
-    // 20000000000000000000000000
-
-    // cosmovisor run query bank balances onomy17sael2kcmm8npe2pmkxj3un90xfg60vvw5smjc
-
-    // cosmovisor run query bank total
-    // cosmovisor run query bank total
     sleep(TIMEOUT).await;
 
     Ok(())
