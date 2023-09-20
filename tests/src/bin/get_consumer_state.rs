@@ -13,11 +13,12 @@ use serde_json::{ser::PrettyFormatter, Serializer, Value};
 
 const ONOMY_NODE: &str = "http://34.28.227.180:26657";
 const ONOMY_CHAIN_ID: &str = "onomy-testnet-1";
-const CONSUMER_CHAIN_ID: &str = "onex-testnet-1";
+const CONSUMER_CHAIN_ID: &str = "onex-testnet-2";
 const PROPOSAL: &str =
-    include_str!("./../../../../market/tools/config/testnet/onex-testnet-genesis-proposal.json");
-/*const PARTIAL_GENESIS: &str =
-include_str!("./../../../../market/tools/config/testnet/onex-testnet-partial-genesis.json");*/
+    include_str!("./../../../../environments/testnet/onex-testnet-2/genesis-proposal.json");
+//const PARTIAL_GENESIS: &str =
+// include_str!("./../../../../environments/testnet/onex-testnet-2/
+// partial-genesis.json");
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -38,6 +39,11 @@ async fn main() -> Result<()> {
 async fn onomyd_runner(_args: &Args) -> Result<()> {
     //let daemon_home = args.daemon_home.as_ref().stack()?;
 
+    let proposal: Value = serde_json::from_str(PROPOSAL).stack()?;
+    if proposal["chain_id"].as_str().stack()? != CONSUMER_CHAIN_ID {
+        panic!();
+    }
+
     sh_cosmovisor("config node", &[ONOMY_NODE]).await.stack()?;
     sh_cosmovisor("config chain-id", &[ONOMY_CHAIN_ID])
         .await
@@ -47,8 +53,6 @@ async fn onomyd_runner(_args: &Args) -> Result<()> {
         .await
         .stack()?;
     let mut state = yaml_str_to_json_value(&ccvconsumer_state).stack()?;
-
-    let proposal: Value = serde_json::from_str(PROPOSAL).stack()?;
 
     // fix missing fields TODO when we update canonical versions we should be able
     // to remove this

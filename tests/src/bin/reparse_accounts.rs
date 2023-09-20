@@ -11,7 +11,7 @@ use serde::ser::Serialize;
 use serde_json::{json, ser::PrettyFormatter, Serializer, Value};
 
 /*const PROPOSAL: &str =
-include_str!("./../../../../environments/testnet/onex-testnet-2/genesis-proposal.json");*/
+include_str!("./../../../../environments/testnet/onex-testnet-b/genesis-proposal.json");*/
 const PARTIAL_GENESIS_WITHOUT_ACCOUNTS: &str = include_str!(
     "./../../../../environments/testnet/onex-testnet-2/partial-genesis-without-accounts.json"
 );
@@ -68,7 +68,7 @@ async fn main() -> Result<()> {
                 "address": address,
                 "coins": [
                     {
-                        "denom": "stake",
+                        "denom": "aonex",
                         "amount": balance
                     }
                 ]

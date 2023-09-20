@@ -8,6 +8,8 @@ use onomy_test_lib::{
     Args, TIMEOUT,
 };
 
+// TODO put under onomy_tests to reduce duplication?
+
 #[rustfmt::skip]
 const DOWNLOAD_ONOMYD: &str = r#"ADD https://github.com/onomyprotocol/onomy/releases/download/$DAEMON_VERSION/onomyd $DAEMON_HOME/cosmovisor/genesis/$DAEMON_VERSION/bin/onomyd"#;
 

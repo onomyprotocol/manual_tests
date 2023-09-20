@@ -23,7 +23,7 @@ async fn main() -> Result<()> {
     let _args = Args::parse();
 
     let local_target_time: DateTime<Tz> = chrono_tz::US::Central
-        .with_ymd_and_hms(2023, 9, 19, 10, 0, 0)
+        .with_ymd_and_hms(2023, 9, 20, 10, 0, 0)
         .single()
         .stack()?;
     let utc_target_time = local_target_time.with_timezone(&Utc);
@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
     let blocks_per_year: u64 = 6311520;
     let current_height: u64 = 70817;
     let current_time: std::result::Result<DateTime<Utc>, _> =
-        DateTime::from_str("2023-09-16T08:52:48.634406326Z");
+        DateTime::from_str("2023-09-17T21:00:48.00Z");
     let current_time = current_time.stack()?;
     let time_diff_chrono = utc_target_time - current_time;
     let time_diff = time_diff_chrono.to_std().stack()?;
