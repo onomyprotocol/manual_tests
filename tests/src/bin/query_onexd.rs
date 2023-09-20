@@ -11,7 +11,7 @@ use onomy_test_lib::{
 use tokio::time::sleep;
 
 const NODE: &str = "http://34.145.158.212:36657";
-const CHAIN_ID: &str = "onex-testnet-1";
+const CHAIN_ID: &str = "onex-testnet-2";
 const MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
 
 #[tokio::main]
@@ -54,14 +54,18 @@ async fn onexd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    /*let comres = Command::new(
+    let comres = Command::new(
         &format!("{daemon_home}/cosmovisor/current/bin/onexd keys add validator --recover"),
         &[],
     )
     .run_with_input_to_completion(MNEMONIC.as_bytes())
     .await
     .stack()?;
-    comres.assert_success().stack()?;*/
+    comres.assert_success().stack()?;
+
+    //cosmovisor run tx bank send validator
+    // onomy1ll7pqzg9zscytvj9dmkl3kna50k0fundct62s7 1anom -y -b block --from
+    // validator
 
     sleep(TIMEOUT).await;
 

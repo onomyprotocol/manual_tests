@@ -11,8 +11,7 @@ use onomy_test_lib::{
 };
 use tokio::io::AsyncReadExt;
 
-const FILE: &str =
-    include_str!("./../../../../environments/testnet/onex-testnet-2/partial-genesis.json");
+const FILE: &str = include_str!("./../../../../environments/testnet/onex-testnet-2/genesis.json");
 
 async fn get_hash(bytes: &[u8]) -> Result<()> {
     let comres = Command::new("openssl dgst -binary -sha256", &[])

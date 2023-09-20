@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use onomy_test_lib::{
     dockerfiles::dockerfile_hermes,
     hermes::{hermes_start, sh_hermes, write_hermes_config, HermesChainConfig},
@@ -15,7 +17,7 @@ use tokio::time::sleep;
 const ONOMY_NODE: &str = "34.145.158.212";
 const CONSUMER_NODE: &str = "34.145.158.212";
 const ONOMY_CHAIN_ID: &str = "onomy-testnet-1";
-const CONSUMER_CHAIN_ID: &str = "onex-testnet-1";
+const CONSUMER_CHAIN_ID: &str = "onex-testnet-2";
 const DEALER_MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
 
 #[tokio::main]
@@ -127,65 +129,68 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
 
     // NOTE: if failure occurs in the middle, you will need to comment out parts
     // that have already succeeded
-    /*
-        // a client is already created because of the ICS setup
-        //let client_pair = create_client_pair(a_chain, b_chain).await.stack()?;
-        // create one client and connection pair that will be used for IBC transfer and
-        // ICS communication
-        let connection_pair = create_connection_pair(&CONSUMER_CHAIN_ID, &ONOMY_CHAIN_ID)
+    // a client is already created because of the ICS setup
+    //let client_pair = create_client_pair(a_chain, b_chain).await.stack()?;
+    // create one client and connection pair that will be used for IBC transfer and
+    // ICS communication
+    /*let connection_pair =
+        onomy_test_lib::hermes::create_connection_pair(&CONSUMER_CHAIN_ID, &ONOMY_CHAIN_ID)
             .await
             .stack()?;
 
-        create_channel_pair(
-            &CONSUMER_CHAIN_ID,
-            &connection_pair.0,
-            "consumer",
-            "provider",
-            true,
-        )
-        .await
-        .stack()?;
+    onomy_test_lib::hermes::create_channel_pair(
+        &CONSUMER_CHAIN_ID,
+        &connection_pair.0,
+        "consumer",
+        "provider",
+        true,
+    )
+    .await
+    .stack()?;*/
 
-        let provider = ONOMY_CHAIN_ID;
-        let consumer = CONSUMER_CHAIN_ID;
-        let consumer_channel = "channel-1";
-        let consumer_connection = "connection-0";
-        let provider_connection = "connection-12";
-        sh_hermes(
-            &format!(
-                "tx chan-open-try --dst-chain {provider} --src-chain {consumer} --dst-connection \
-                 {provider_connection} --dst-port transfer --src-port transfer --src-channel \
-                 {consumer_channel}"
-            ),
-            &[],
-        )
-        .await
-        .stack()?;
+    /*
+    let provider = ONOMY_CHAIN_ID;
+    let consumer = CONSUMER_CHAIN_ID;
+    let consumer_channel = "channel-1";
+    let consumer_connection = "connection-0";
+    let provider_connection = "connection-13";
+    sh_hermes(
+        &format!(
+            "tx chan-open-try --dst-chain {provider} --src-chain {consumer} --dst-connection \
+             {provider_connection} --dst-port transfer --src-port transfer --src-channel \
+             {consumer_channel}"
+        ),
+        &[],
+    )
+    .await
+    .stack()?;
 
-        let provider_channel = "channel-4";
+    // get this from the above op
+    let provider_channel = "channel-6";
 
-        sh_hermes(
-            &format!(
-                "tx chan-open-ack --dst-chain {consumer} --src-chain {provider} --dst-connection \
-                 {consumer_connection} --dst-port transfer --src-port transfer --dst-channel \
-                 {consumer_channel} --src-channel {provider_channel}"
-            ),
-            &[],
-        )
-        .await
-        .stack()?;
+    sh_hermes(
+        &format!(
+            "tx chan-open-ack --dst-chain {consumer} --src-chain {provider} --dst-connection \
+             {consumer_connection} --dst-port transfer --src-port transfer --dst-channel \
+             {consumer_channel} --src-channel {provider_channel}"
+        ),
+        &[],
+    )
+    .await
+    .stack()?;
 
-        sh_hermes(
-            &format!(
-                "tx chan-open-confirm --dst-chain {provider} --src-chain {consumer} \
-                --dst-connection {provider_connection} --dst-port transfer --src-port transfer \
-                --dst-channel {provider_channel} --src-channel {consumer_channel}"
-            ),
-            &[],
-        )
-        .await
-        .stack()?;
+    sh_hermes(
+        &format!(
+            "tx chan-open-confirm --dst-chain {provider} --src-chain {consumer} --dst-connection \
+             {provider_connection} --dst-port transfer --src-port transfer --dst-channel \
+             {provider_channel} --src-channel {consumer_channel}"
+        ),
+        &[],
+    )
+    .await
+    .stack()?;
     */
+
     // then we need to relay
     let mut hermes_runner = hermes_start("/logs/hermes_ics_runner.log").await.stack()?;
     //ibc_pair.hermes_check_acks().await.stack()?;
@@ -193,14 +198,9 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
     // hermes query packet pending --chain onomy-testnet-1 --port transfer --channel
     // channel-4
 
-    // CBC24F131C1128CAA18143EC2AFF01EF7170FE7957715D0DF7BEE21C6B6EE8F9
-
     // hermes tx ft-transfer --dst-chain onex-testnet-1 --src-chain onomy-testnet-1
     // --src-port transfer --src-channel channel-4 --amount 100000000000 --denom
     // anom --timeout-height-offset 10 --timeout-seconds 60
-
-    // 20000000 000000000000000000
-    // 100000000000000000000000
 
     // NOTE: must use a ed25519 tendermint key
     // cosmovisor run tx staking create-validator --commission-max-change-rate 0.01
@@ -211,7 +211,7 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
     // '{"@type":"/cosmos.crypto.ed25519.PubKey","key":"1vMo7NN5rvX06zVmJ61KG00/
     // KZB0H3rsmsoslRyaBds="}' -y -b block --fees 1000000anom
 
-    sleep(TIMEOUT).await;
+    sleep(Duration::from_secs(9999)).await;
 
     hermes_runner.terminate(TIMEOUT).await.stack()?;
 
