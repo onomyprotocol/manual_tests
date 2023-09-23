@@ -205,9 +205,7 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
     // NOTE: must use a ed25519 tendermint key
     // cosmovisor run tx staking create-validator --commission-max-change-rate 0.01
     // --commission-max-rate 0.10 --commission-rate 0.05 --min-self-delegation 1
-    // --amount 100000000000ibc/
-    // 5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513 --from
-    // validator --pubkey
+    // --amount 100000000000aonex --from validator --pubkey
     // '{"@type":"/cosmos.crypto.ed25519.PubKey","key":"1vMo7NN5rvX06zVmJ61KG00/
     // KZB0H3rsmsoslRyaBds="}' -y -b block --fees 1000000anom
 

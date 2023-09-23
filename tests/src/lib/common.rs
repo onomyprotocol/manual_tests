@@ -7,6 +7,9 @@ use onomy_test_lib::{
     },
     Args, TIMEOUT,
 };
+pub mod contest;
+mod get_key;
+pub use get_key::*;
 
 // TODO put under onomy_tests to reduce duplication?
 

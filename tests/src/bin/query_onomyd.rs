@@ -1,7 +1,6 @@
 use common::{container_runner, dockerfile_onomyd};
 use onomy_test_lib::{
-    cosmovisor::{cosmovisor_get_addr, sh_cosmovisor},
-    ibc::{IbcPair, IbcSide},
+    cosmovisor::sh_cosmovisor,
     onomy_std_init,
     super_orchestrator::{
         stacked_errors::{Error, Result, StackableErr},
@@ -53,88 +52,16 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
     .stack()?;
     comres.assert_success().stack()?;
 
-    let _addr = &cosmovisor_get_addr("validator").await.stack()?;
-
-    let _ibc_pair = IbcPair {
-        a: IbcSide {
-            chain_id: "onex-testnet-1".to_owned(),
-            connection: "connection-0".to_owned(),
-            transfer_channel: "channel-1".to_owned(),
-            ics_channel: "channel-0".to_owned(),
-        },
-        b: IbcSide {
-            chain_id: CHAIN_ID.to_owned(),
-            connection: "connection-12".to_owned(),
-            transfer_channel: "channel-4".to_owned(),
-            ics_channel: "channel-3".to_owned(), // ?
-        },
-    };
-
-    /*
-    // acquiring all module accounts
-    let accounts = sh_cosmovisor_no_dbg("query auth accounts -o json --limit 10000000", &[])
-        .await
-        .stack()?;
-    let accounts: Value = serde_json::from_str(&accounts).stack()?;
-    let accounts = accounts["accounts"].as_array().stack()?;
-    let mut results = vec![];
-    for account in accounts {
-        let t = &account["@type"];
-        let t = t.as_str().stack()?;
-        if t != "/cosmos.auth.v1beta1.BaseAccount" {
-            let address = &account["base_account"]["address"];
-            if let Some(address) = address.as_str() {
-                results.push(address.to_owned());
-            }
-        }
-    }
-    for res in &results {
-        println!("{res}");
-    }
-    dbg!(accounts.len(), results.len());
-    */
-
-    /*
-        Chain: onomy-testnet-1
-      - Client: 07-tendermint-4
-        * Connection: connection-12
-          | State: OPEN
-          | Counterparty state: OPEN
-          + Channel: channel-3
-            | Port: provider
-            | State: OPEN
-            | Counterparty: channel-0
-          + Channel: channel-4
-            | Port: transfer
-            | State: OPEN
-            | Counterparty: channel-1
-    # Chain: onex-testnet-1
-      - Client: 07-tendermint-0
-        * Connection: connection-0
-          | State: OPEN
-          | Counterparty state: OPEN
-          + Channel: channel-0
-            | Port: consumer
-            | State: OPEN
-            | Counterparty: channel-3
-          + Channel: channel-1
-            | Port: transfer
-            | State: OPEN
-            | Counterparty: channel-4
-         */
-
-    // sequence 4
-    // cosmovisor run tx ibc-transfer transfer transfer channel-4
-    // onomy1yks83spz6lvrrys8kh0untt22399tskk6jafcv 100000000000anom --from
-    // validator -y -b block --fees 1000000anom --gas 1000000
-    // --packet-timeout-timestamp 60000000000
-
-    // E4D309024FC4EA60B761E739C2AF998D246546245CCCE6F213D35DF868FA1D20
-
-    //      100000000000anom
-    //999999799993251769
-
     sleep(TIMEOUT).await;
+
+    //cosmovisor run tx bank send validator
+    // onomy1tmtdfh2wm343nkk4424jqe9n0j0ecw870qd9c2 1000000000000000000000anom -y -b
+    // block --from validator
+
+    //100000000000000000000000000
+    //     1000000000000000000000anom
+
+    //onomy1yks83spz6lvrrys8kh0untt22399tskk6jafcv
 
     Ok(())
 }

@@ -9,15 +9,26 @@ name = "common"
 path = "src/lib/common.rs"
 
 [dependencies]
+bech32 = "0.9"
+bip32 = "0.5"
+bip39 = "2"
 chrono = "0.4"
 chrono-tz = "0.8"
 clap = { version = "4", features = ["derive"] }
+cosmos-sdk-proto = { package = "cosmos-sdk-proto-althea", version = "0.13" }
+csv = "1.2"
+#deep_space = { git = "https://github.com/onomyprotocol/deep_space.git", rev = "36aa611a1ccfd4a48e1248d029a11cb026106254" }
+deep_space = { path = "./../../deep_space" }
 log = "0.4"
 onomy_test_lib = { path = "./../../onomy_tests/onomy_test_lib" }
+ripemd = "0.1"
+ron = "0.8"
 serde = "1.0"
 serde_json = "1.0"
+sha2 = "0.10"
 #onomy_test_lib = { git = "https://github.com/pendulum-labs/onomy_tests", rev = "e4c28c1cce89e2f641113320b40a5ecc91c47dea" }
 tokio = { version = "1", default-features = false }
+u64_array_bigints = { version = "0.3", default-features = false }
 
 [features]
 default = []
