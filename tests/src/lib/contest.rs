@@ -68,9 +68,12 @@ pub fn get_tx_batches(
     chain_id: &str,
     private_key: PrivateKey,
     records: &[Record],
-) -> Result<Vec<Vec<u8>>> {
-    let public_key = private_key.to_public_key("cosmospub").stack()?;
-    let from_address = public_key.to_address();
+) -> Result<Vec<Vec<Msg>>> {
+    let from_address = private_key
+        .to_address("onomy")
+        .stack()?
+        .to_bech32("onomy")
+        .stack()?;
 
     const BATCH_SIZE: usize = 100;
     let mut batches = vec![];
@@ -90,11 +93,41 @@ pub fn get_tx_batches(
 
             let record = &records[i];
 
-            let coins = vec![Coin {
-                denom: "anom".to_string(),
-                amount: u256!(1),
-            }
-            .into()];
+            /*
+            allotment:
+            500 BTC
+            10000 NOM
+            2M USDC
+            2M USDT
+            1500 ETH
+             */
+            let coins = vec![
+                Coin {
+                    denom: "abtc".to_string(),
+                    amount: u256!(500_000000000000000000),
+                }
+                .into(),
+                Coin {
+                    denom: "anom".to_string(),
+                    amount: u256!(10000_000000000000000000),
+                }
+                .into(),
+                Coin {
+                    denom: "ausdc".to_string(),
+                    amount: u256!(2000000_000000000000000000),
+                }
+                .into(),
+                Coin {
+                    denom: "ausdt".to_string(),
+                    amount: u256!(2000000_000000000000000000),
+                }
+                .into(),
+                Coin {
+                    denom: "wei".to_string(),
+                    amount: u256!(1500_000000000000000000),
+                }
+                .into(),
+            ];
             let send = MsgSend {
                 amount: coins,
                 from_address: from_address.to_string(),
@@ -106,7 +139,7 @@ pub fn get_tx_batches(
             i += 1;
         }
 
-        let fee = Fee {
+        /*let fee = Fee {
             amount: vec![Coin {
                 denom: "anom".to_string(),
                 amount: u256!(1_000_000),
@@ -124,9 +157,9 @@ pub fn get_tx_batches(
         };
 
         //let tx = private_key.get_signed_tx(&msgs, args, "").stack()?;
-        let tx = private_key.sign_std_msg(&msgs, args, "").stack()?;
-
-        batches.push(tx);
+        let tx = private_key.sign_std_msg(&msgs, args, "").stack()?;*/
+        //batches.push(tx);
+        batches.push(msgs);
     }
 
     Ok(batches)

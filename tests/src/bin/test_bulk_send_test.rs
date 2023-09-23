@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use common::{
     container_runner,
-    contest::{precheck_all_batches, Record},
+    contest::{get_tx_batches, precheck_all_batches, Record},
     dockerfile_onomyd, get_private_key,
 };
 use cosmos_sdk_proto::cosmos::bank::v1beta1::MsgSend;
@@ -18,6 +18,7 @@ use onomy_test_lib::{
     },
     Args, TIMEOUT,
 };
+use tokio::time::sleep;
 use u64_array_bigints::u256;
 
 const MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon \
@@ -54,6 +55,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
     let daemon_home = args.daemon_home.as_ref().stack()?;
     let mut options = CosmosSetupOptions::new(daemon_home);
     options.mnemonic = Some(MNEMONIC.to_owned());
+    options.onex_testnet_amounts = true;
     onomyd_setup(options).await.stack()?;
 
     let mut cosmovisor_runner = cosmovisor_start("onomyd_runner.log", None).await.stack()?;
@@ -76,9 +78,6 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
         addr
     );
 
-    let records: Vec<Record> = ron::from_str(RECORDS).stack()?;
-    precheck_all_batches(&records).stack()?;
-
     /*
     let txn_file = "/logs/txn_send.json";
     let txn_signed_file = "/logs/txn_send_signed.json";
@@ -91,6 +90,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
     info!("done");
     */
 
+    /*
     let send = MsgSend {
         amount: vec![Coin {
             denom: "anom".to_string(),
@@ -121,17 +121,34 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
         )
         .await
         .stack()?;
+    */
 
-    /*let records: Vec<Record>  = ron::from_str(RECORDS).stack()?;
+    let records: Vec<Record> = ron::from_str(RECORDS).stack()?;
     precheck_all_batches(&records).stack()?;
 
-    let private_key = PrivateKey::from_hd_wallet_path("m/84'/0'/0'/0/0", MNEMONIC, "").stack()?;
-    let (all_msgs, _) = get_tx_batches("onomy", private_key, &records).stack()?;
+    let batches = get_tx_batches("onomy", private_key, &records).stack()?;
 
-    for batch in all_msgs {
-        info!("HELLO");
-        contact.simulate_tx(&batch, private_key).await.stack()?;
-    }*/
+    // TODO: add query to prevent accidentally sending twice if there is a failure in the middle of one run, also have a query to verify that everyone has the amounts
+    for (i, batch) in batches.iter().enumerate() {
+        info!("submitting batch {i}");
+        contact
+            .send_message(
+                &batch,
+                None,
+                &[Coin {
+                    denom: "anom".to_string(),
+                    amount: u256!(20_000_000),
+                }
+                .into()],
+                Some(Duration::from_secs(20)),
+                private_key,
+            )
+            .await
+            .stack()?;
+        info!("successful");
+    }
+
+    sleep(TIMEOUT).await;
 
     cosmovisor_runner.terminate(TIMEOUT).await.stack()?;
 
