@@ -156,7 +156,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
                 denom: "anom".to_string(),
                 amount: u256!(1_000_000_000),
             }],
-            Some(Duration::from_secs(20)),
+            Some(Duration::from_secs(20)), // `None` may help with errors
             private_key,
         )
         .await
