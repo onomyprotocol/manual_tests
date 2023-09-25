@@ -20,6 +20,7 @@ use tokio::time::sleep;
 use u64_array_bigints::u256;
 
 const NODE: &str = "http://34.145.158.212:36657";
+const NODE_GRPC: &str = "http://34.145.158.212:9292";
 const CHAIN_ID: &str = "onex-testnet-2";
 const MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
 const RECORDS: &str = include_str!("./../../resources/onex-testnet-trade-war-filtered.csv");
@@ -43,11 +44,6 @@ async fn main() -> Result<()> {
 }
 
 async fn onexd_runner(args: &Args) -> Result<()> {
-    // have a guard to prevent accidents
-    let addr = &cosmovisor_get_addr("validator").await.stack()?;
-    info!("ADDR: {addr}");
-    assert_eq!(addr, "onomy1ygphmh38dv64ggh4ayvwczk7pf2u240tkl6ntf");
-
     let daemon_home = args.daemon_home.clone().stack()?;
 
     sh_cosmovisor("config node", &[NODE]).await.stack()?;
@@ -67,7 +63,12 @@ async fn onexd_runner(args: &Args) -> Result<()> {
     .stack()?;
     comres.assert_success().stack()?;
 
-    let contact = deep_space::Contact::new("http://127.0.0.1:9090", TIMEOUT, "onomy").stack()?;
+    // have a guard to prevent accidents
+    let addr = &cosmovisor_get_addr("validator").await.stack()?;
+    info!("ADDR: {addr}");
+    assert_eq!(addr, "onomy1yks83spz6lvrrys8kh0untt22399tskk6jafcv");
+
+    let contact = deep_space::Contact::new(NODE_GRPC, TIMEOUT, "onomy").stack()?;
     dbg!(contact.query_total_supply().await.stack()?);
 
     let private_key = get_private_key(MNEMONIC).stack()?;
@@ -88,7 +89,7 @@ async fn onexd_runner(args: &Args) -> Result<()> {
             .get_balances(Address::from_bech32(record.addr.clone()).stack()?)
             .await
             .stack()?;
-        if !balances.is_empty() {
+        if balances.len() > 1 {
             dbg!(record, balances);
             panic!();
         }
