@@ -1,5 +1,5 @@
 use cosmos_sdk_proto::cosmos::bank::v1beta1::MsgSend;
-use deep_space::{u256, Coin, Fee, MessageArgs, Msg, PrivateKey};
+use deep_space::{u256, Coin, Msg, PrivateKey};
 use onomy_test_lib::{
     reprefix_bech32,
     super_orchestrator::stacked_errors::{Result, StackableErr},
@@ -54,113 +54,59 @@ impl Record {
     }
 }
 
-pub fn precheck_all_batches(records: &[Record]) -> Result<()> {
-    //let mnemonic = MNEMONIC;
-    //let mnemonic = mnemonic.trim();
-    //let private_key = PrivateKey::from_hd_wallet_path("m/84'/0'/0'/0/0",
-    // mnemonic, "").stack()?;
-    let private_key = PrivateKey::from_secret(&[9u8; 32]);
-    let _ = get_tx_batches("test-chain-id", private_key, records).stack()?;
-    Ok(())
-}
-
-pub fn get_tx_batches(
-    chain_id: &str,
-    private_key: PrivateKey,
-    records: &[Record],
-) -> Result<Vec<Vec<Msg>>> {
+pub fn get_txs(private_key: PrivateKey, records: &[Record]) -> Result<Vec<Msg>> {
     let from_address = private_key
         .to_address("onomy")
         .stack()?
         .to_bech32("onomy")
         .stack()?;
 
-    const BATCH_SIZE: usize = 100;
-    let mut batches = vec![];
+    let mut msgs = vec![];
 
-    let mut i = 0;
-    loop {
-        if i >= records.len() {
-            break
-        }
-
-        let mut msgs = vec![];
-
-        loop {
-            if (msgs.len() >= BATCH_SIZE) || (i >= records.len()) {
-                break
+    for record in records {
+        /*
+        allotment:
+        500 BTC
+        10000 NOM
+        2M USDC
+        2M USDT
+        1500 ETH
+            */
+        let coins = vec![
+            Coin {
+                denom: "abtc".to_string(),
+                amount: u256!(500_000000000000000000),
             }
-
-            let record = &records[i];
-
-            /*
-            allotment:
-            500 BTC
-            10000 NOM
-            2M USDC
-            2M USDT
-            1500 ETH
-             */
-            let coins = vec![
-                Coin {
-                    denom: "abtc".to_string(),
-                    amount: u256!(500_000000000000000000),
-                }
-                .into(),
-                Coin {
-                    denom: "anom".to_string(),
-                    amount: u256!(10000_000000000000000000),
-                }
-                .into(),
-                Coin {
-                    denom: "ausdc".to_string(),
-                    amount: u256!(2000000_000000000000000000),
-                }
-                .into(),
-                Coin {
-                    denom: "ausdt".to_string(),
-                    amount: u256!(2000000_000000000000000000),
-                }
-                .into(),
-                Coin {
-                    denom: "wei".to_string(),
-                    amount: u256!(1500_000000000000000000),
-                }
-                .into(),
-            ];
-            let send = MsgSend {
-                amount: coins,
-                from_address: from_address.to_string(),
-                to_address: record.addr.clone(),
-            };
-            let msg = Msg::new("/cosmos.bank.v1beta1.MsgSend", send);
-            msgs.push(msg);
-
-            i += 1;
-        }
-
-        /*let fee = Fee {
-            amount: vec![Coin {
+            .into(),
+            Coin {
                 denom: "anom".to_string(),
-                amount: u256!(1_000_000),
-            }],
-            gas_limit: 1_000_000,
-            granter: None,
-            payer: None,
+                amount: u256!(10000_000000000000000000),
+            }
+            .into(),
+            Coin {
+                denom: "ausdc".to_string(),
+                amount: u256!(2000000_000000000000000000),
+            }
+            .into(),
+            Coin {
+                denom: "ausdt".to_string(),
+                amount: u256!(2000000_000000000000000000),
+            }
+            .into(),
+            Coin {
+                denom: "wei".to_string(),
+                amount: u256!(1500_000000000000000000),
+            }
+            .into(),
+        ];
+        let send = MsgSend {
+            amount: coins,
+            from_address: from_address.to_string(),
+            to_address: record.addr.clone(),
         };
-        let args = MessageArgs {
-            sequence: 0,
-            account_number: 0,
-            chain_id: chain_id.to_string(),
-            fee,
-            timeout_height: 100,
-        };
-
-        //let tx = private_key.get_signed_tx(&msgs, args, "").stack()?;
-        let tx = private_key.sign_std_msg(&msgs, args, "").stack()?;*/
-        //batches.push(tx);
-        batches.push(msgs);
+        let msg = Msg::new("/cosmos.bank.v1beta1.MsgSend", send);
+        msgs.push(msg);
     }
 
-    Ok(batches)
+    Ok(msgs)
 }

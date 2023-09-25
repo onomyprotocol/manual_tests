@@ -15,7 +15,7 @@ pub fn get_private_key(mnemonic: &str) -> Result<PrivateKey> {
     let extended_pub = xpub.to_extended_key(bip32::Prefix::ZPUB);
     let bytes = extended_pub.key_bytes;
     let mut hasher = sha2::Sha256::new();
-    hasher.update(&bytes);
+    hasher.update(bytes);
     let result = hasher.finalize();
     let mut hasher = ripemd::Ripemd160::new();
     hasher.update(result);

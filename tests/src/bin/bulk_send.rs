@@ -1,36 +1,34 @@
+use std::time::Duration;
+
 use common::{
     container_runner,
-    contest::{precheck_all_batches, Record},
-    dockerfile_onexd,
+    contest::{get_txs, Record},
+    dockerfile_onexd, get_private_key,
 };
+use deep_space::{Address, Coin};
 use log::info;
 use onomy_test_lib::{
     cosmovisor::{cosmovisor_get_addr, sh_cosmovisor},
     onomy_std_init,
     super_orchestrator::{
         stacked_errors::{Error, Result, StackableErr},
-        FileOptions,
+        Command,
     },
     Args, TIMEOUT,
 };
 use tokio::time::sleep;
+use u64_array_bigints::u256;
 
 const NODE: &str = "http://34.145.158.212:36657";
 const CHAIN_ID: &str = "onex-testnet-2";
 const MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
+const RECORDS: &str = include_str!("./../../resources/onex-testnet-trade-war-filtered.csv");
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = onomy_std_init()?;
 
-    let records_s =
-        FileOptions::read_to_string("./tests/resources/onex-testnet-trade-war-filtered.csv")
-            .await
-            .stack()?;
-    let records: Vec<Record> = ron::from_str(&records_s).stack()?;
-
-    precheck_all_batches(&records).stack()?;
-    Err(Error::from("lkj")).stack()?;
+    Err(Error::from("do not comment out unless ready for send")).stack()?;
 
     if let Some(ref s) = args.entry_name {
         match s.as_str() {
@@ -60,19 +58,71 @@ async fn onexd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    /*let comres = Command::new(
+    let comres = Command::new(
         &format!("{daemon_home}/cosmovisor/current/bin/onexd keys add validator --recover"),
         &[],
     )
     .run_with_input_to_completion(MNEMONIC.as_bytes())
     .await
     .stack()?;
-    comres.assert_success().stack()?;*/
+    comres.assert_success().stack()?;
 
-    //cosmovisor run tx bank send validator
-    // onomy1ll7pqzg9zscytvj9dmkl3kna50k0fundct62s7 1anom -y -b block --from
-    // validator
-    sleep(TIMEOUT).await;
+    let contact = deep_space::Contact::new("http://127.0.0.1:9090", TIMEOUT, "onomy").stack()?;
+    dbg!(contact.query_total_supply().await.stack()?);
+
+    let private_key = get_private_key(MNEMONIC).stack()?;
+    assert_eq!(
+        &private_key
+            .to_address("onomy")
+            .stack()?
+            .to_bech32("onomy")
+            .stack()?,
+        addr
+    );
+
+    let records: Vec<Record> = ron::from_str(RECORDS).stack()?;
+    let msgs = get_txs(private_key, &records).stack()?;
+
+    for record in &records {
+        let balances = contact
+            .get_balances(Address::from_bech32(record.addr.clone()).stack()?)
+            .await
+            .stack()?;
+        if !balances.is_empty() {
+            dbg!(record, balances);
+            panic!();
+        }
+    }
+
+    // try submitting in one big batch
+    info!("submitting batch");
+    contact
+        .send_message(
+            &msgs,
+            None,
+            &[Coin {
+                denom: "anom".to_string(),
+                amount: u256!(1_000_000_000),
+            }],
+            Some(Duration::from_secs(20)),
+            private_key,
+        )
+        .await
+        .stack()?;
+
+    info!("double checking");
+
+    for record in &records {
+        let balances = contact
+            .get_balances(Address::from_bech32(record.addr.clone()).stack()?)
+            .await
+            .stack()?;
+        assert!(balances.len() >= 5);
+    }
+
+    info!("successful");
+
+    sleep(Duration::ZERO).await;
 
     Ok(())
 }

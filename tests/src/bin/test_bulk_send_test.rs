@@ -2,11 +2,10 @@ use std::time::Duration;
 
 use common::{
     container_runner,
-    contest::{get_tx_batches, precheck_all_batches, Record},
+    contest::{get_txs, Record},
     dockerfile_onomyd, get_private_key,
 };
-use cosmos_sdk_proto::cosmos::bank::v1beta1::MsgSend;
-use deep_space::{Coin, Msg};
+use deep_space::{Address, Coin};
 use log::info;
 use onomy_test_lib::{
     cosmovisor::{cosmovisor_get_addr, cosmovisor_start},
@@ -22,7 +21,7 @@ use tokio::time::sleep;
 use u64_array_bigints::u256;
 
 const MNEMONIC: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon \
-                        abandon abandon about "; //include_str!("./../../../../meta_test_mnemonic.txt");
+                        abandon abandon about ";
 const RECORDS: &str = include_str!("./../../resources/onex-testnet-trade-war-filtered.csv");
 
 #[tokio::main]
@@ -82,9 +81,12 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
     let txn_file = "/logs/txn_send.json";
     let txn_signed_file = "/logs/txn_send_signed.json";
     let chain_id = "onomy";
-    let txn_send = sh_cosmovisor("tx bank send onomy1ygphmh38dv64ggh4ayvwczk7pf2u240tkl6ntf onomy1a69w3hfjqere4crkgyee79x2mxq0w2pfj9tu2m 1337anom --fees 1000000anom --generate-only", &[]).await.stack()?;
+    let txn_send = sh_cosmovisor("tx bank send onomy1ygphmh38dv64ggh4ayvwczk7pf2u240tkl6ntf
+    onomy1a69w3hfjqere4crkgyee79x2mxq0w2pfj9tu2m 1337anom --fees 1000000anom --generate-only", &[])
+    .await.stack()?;
     FileOptions::write_str(txn_file, &txn_send).await.stack()?;
-    let txn_send_signed = sh_cosmovisor("tx sign", &[txn_file, "--chain-id", chain_id, "--from", "validator"]).await.stack()?;
+    let txn_send_signed = sh_cosmovisor("tx sign", &[txn_file, "--chain-id", chain_id, "--from",
+    "validator"]).await.stack()?;
     FileOptions::write_str(txn_signed_file, &txn_send_signed).await.stack()?;
     sh_cosmovisor_tx("broadcast -b block", &[txn_signed_file]).await.stack()?;
     info!("done");
@@ -124,31 +126,55 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
     */
 
     let records: Vec<Record> = ron::from_str(RECORDS).stack()?;
-    precheck_all_batches(&records).stack()?;
+    let msgs = get_txs(private_key, &records).stack()?;
 
-    let batches = get_tx_batches("onomy", private_key, &records).stack()?;
-
-    // TODO: add query to prevent accidentally sending twice if there is a failure in the middle of one run, also have a query to verify that everyone has the amounts
-    for (i, batch) in batches.iter().enumerate() {
-        info!("submitting batch {i}");
-        contact
-            .send_message(
-                &batch,
-                None,
-                &[Coin {
-                    denom: "anom".to_string(),
-                    amount: u256!(20_000_000),
-                }
-                .into()],
-                Some(Duration::from_secs(20)),
-                private_key,
-            )
+    for record in &records {
+        let balances = contact
+            .get_balances(Address::from_bech32(record.addr.clone()).stack()?)
             .await
             .stack()?;
-        info!("successful");
+        if !balances.is_empty() {
+            dbg!(record, balances);
+            panic!();
+        }
     }
 
-    sleep(TIMEOUT).await;
+    /*const BATCH_SIZE: usize = 10000;
+    let batches = vec![];
+    let mut i = 0;
+    let mut j = 0;
+    loop {
+        if j >= BATCH_SIZE {}
+    }*/
+    // try submitting in one big batch
+    info!("submitting batch");
+    contact
+        .send_message(
+            &msgs,
+            None,
+            &[Coin {
+                denom: "anom".to_string(),
+                amount: u256!(1_000_000_000),
+            }],
+            Some(Duration::from_secs(20)),
+            private_key,
+        )
+        .await
+        .stack()?;
+
+    info!("double checking");
+
+    for record in &records {
+        let balances = contact
+            .get_balances(Address::from_bech32(record.addr.clone()).stack()?)
+            .await
+            .stack()?;
+        assert!(balances.len() >= 5);
+    }
+
+    info!("successful");
+
+    sleep(Duration::ZERO).await;
 
     cosmovisor_runner.terminate(TIMEOUT).await.stack()?;
 
