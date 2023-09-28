@@ -43,6 +43,7 @@ pub fn dockerfile_havend() -> String {
 /// don't need extra build or volume arguments.
 pub async fn container_runner(args: &Args, name_and_contents: &[(&str, &str)]) -> Result<()> {
     let logs_dir = "./tests/logs";
+    let resources_dir = "./tests/resources";
     let dockerfiles_dir = "./tests/dockerfiles";
     let bin_entrypoint = &args.bin_name;
     let container_target = "x86_64-unknown-linux-gnu";
@@ -76,7 +77,7 @@ pub async fn container_runner(args: &Args, name_and_contents: &[(&str, &str)]) -
         logs_dir,
     )
     .stack()?;
-    cn.add_common_volumes(&[(logs_dir, "/logs")]);
+    cn.add_common_volumes(&[(logs_dir, "/logs"), (resources_dir, "/resources")]);
     let uuid = cn.uuid_as_string();
     cn.add_common_entrypoint_args(&["--uuid", &uuid]);
     cn.run_all(true).await.stack()?;
