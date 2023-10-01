@@ -36,7 +36,7 @@ async fn onexd_runner(_args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    let accounts = sh_cosmovisor_no_dbg("query auth accounts --limit 100", &[])
+    let accounts = sh_cosmovisor_no_dbg("query auth accounts --limit 10000", &[])
         .await
         .stack()?;
 

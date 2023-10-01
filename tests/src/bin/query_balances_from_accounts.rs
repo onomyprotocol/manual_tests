@@ -58,33 +58,35 @@ async fn onexd_runner(_args: &Args) -> Result<()> {
             info!("reached account {i}");
         }
         let address = &account["address"];
-        let address = address.as_str().unwrap();
-        if module_accounts.contains(address) {
-            continue
-        }
-        let balances = sh_cosmovisor_no_dbg("query bank balances", &[address])
-            .await
-            .stack()?;
-        let mut balances = yaml_str_to_json_value(&balances).stack()?;
-        let mut balances = balances["balances"].take();
+        if let Some(address) = address.as_str() {
+            if module_accounts.contains(address) {
+                continue
+            }
+            let balances = sh_cosmovisor_no_dbg("query bank balances", &[address])
+                .await
+                .stack()?;
+            let mut balances = yaml_str_to_json_value(&balances).stack()?;
+            let balances = balances["balances"].take();
 
-        // set stake to normal levels
-        if let Some(array) = balances.as_array_mut() {
-            for item in array {
-                if let Some(denom) = item.get("denom") {
-                    if denom.as_str().unwrap() == "stake" {
-                        *item.get_mut("amount").unwrap() = "10000000000000000000".into();
+            // set stake to normal levels
+            /*if let Some(array) = balances.as_array_mut() {
+                for item in array {
+                    if let Some(denom) = item.get("denom") {
+                        if denom.as_str().unwrap() == "stake" {
+                            let
+                            *item.get_mut("amount").unwrap() = "10000000000000000000".into();
+                        }
                     }
                 }
-            }
-        }
+            }*/
 
-        accounts_and_balances.as_array_mut().unwrap().push(json!(
-            {
-                "address": address,
-                "coins": balances,
-            }
-        ));
+            accounts_and_balances.as_array_mut().unwrap().push(json!(
+                {
+                    "address": address,
+                    "coins": balances,
+                }
+            ));
+        }
         i += 1;
     }
 
