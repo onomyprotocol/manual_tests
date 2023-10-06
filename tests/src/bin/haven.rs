@@ -401,7 +401,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
         )
         .await?;
     // it takes time for the relayer to complete relaying
-    wait_for_num_blocks(4).await?;
+    wait_for_num_blocks(5).await?;
     // notify consumer that we have sent NOM
     nm_consumer.send::<IbcPair>(&ibc_pair).await?;
 
@@ -436,7 +436,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
             "1anom",
         ])
         .await?;
-    wait_for_num_blocks(4).await?;
+    wait_for_num_blocks(5).await?;
     // wait for kudos check to complete
     nm_consumer.send::<()>(&()).await?;
     nm_consumer.recv::<()>().await?;
@@ -528,7 +528,7 @@ async fn consumer(args: &Args) -> Result<()> {
             "1akudos",
         ])
         .await?;
-    wait_for_num_blocks(4).await?;
+    wait_for_num_blocks(5).await?;
 
     let pubkey = sh_cosmovisor("tendermint show-validator", &[]).await?;
     let pubkey = pubkey.trim();

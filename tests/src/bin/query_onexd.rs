@@ -10,7 +10,7 @@ use onomy_test_lib::{
 };
 use tokio::time::sleep;
 
-const NODE: &str = "http://34.145.158.212:36657";
+const NODE: &str = "http://34.66.225.143:36657";
 const CHAIN_ID: &str = "onex-testnet-2";
 const MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
 
@@ -31,11 +31,11 @@ async fn main() -> Result<()> {
 }
 
 async fn onexd_runner(args: &Args) -> Result<()> {
-    // curl -s http://34.145.158.212:36657/consensus_state
+    // curl -s http://34.66.225.143:36657/consensus_state
     // /net_info
     // /validators
 
-    // http://34.85.152.11:36657/validators?
+    // http://34.66.225.143:36657/validators?
 
     // in order to access the 1317 port locally, use `docker inspect` to find the IP
     // address of the container from the host
@@ -54,14 +54,14 @@ async fn onexd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    let comres = Command::new(
+    /*let comres = Command::new(
         &format!("{daemon_home}/cosmovisor/current/bin/onexd keys add validator --recover"),
         &[],
     )
     .run_with_input_to_completion(MNEMONIC.as_bytes())
     .await
     .stack()?;
-    comres.assert_success().stack()?;
+    comres.assert_success().stack()?;*/
 
     //cosmovisor run tx bank send validator
     // onomy1ll7pqzg9zscytvj9dmkl3kna50k0fundct62s7 1anom -y -b block --from
