@@ -2,17 +2,15 @@ use common::{container_runner, dockerfile_onexd};
 use onomy_test_lib::{
     cosmovisor::sh_cosmovisor,
     onomy_std_init,
-    super_orchestrator::{
-        stacked_errors::{Error, Result, StackableErr},
-        Command,
-    },
+    super_orchestrator::stacked_errors::{Error, Result, StackableErr},
     Args, TIMEOUT,
 };
 use tokio::time::sleep;
 
 const NODE: &str = "http://34.66.225.143:36657";
 const CHAIN_ID: &str = "onex-testnet-2";
-const MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
+//const MNEMONIC: &str =
+// include_str!("./../../../../testnet_dealer_mnemonic.txt");
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -44,7 +42,7 @@ async fn onexd_runner(args: &Args) -> Result<()> {
     //enable_swagger_apis(daemon_home).await.stack()?;
     // but note it may take over a minute to start up
 
-    let daemon_home = args.daemon_home.clone().stack()?;
+    let _daemon_home = args.daemon_home.clone().stack()?;
 
     sh_cosmovisor("config node", &[NODE]).await.stack()?;
     sh_cosmovisor("config chain-id", &[CHAIN_ID])

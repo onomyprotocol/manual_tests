@@ -10,6 +10,7 @@ use onomy_test_lib::{
 };
 use serde::ser::Serialize;
 use serde_json::{json, ser::PrettyFormatter, Serializer, Value};
+use u64_array_bigints::U256;
 
 /*const PROPOSAL: &str =
 include_str!("./../../../../environments/testnet/onex-testnet-3/genesis-proposal.json");*/
@@ -38,6 +39,29 @@ async fn main() -> Result<()> {
     let exported: Value = serde_json::from_str(&exported_genesis).stack()?;
     let mut genesis: Value = serde_json::from_str(&partial_genesis_without_accounts).stack()?;
 
+    let validators_value: &[Value] = exported["app_state"]["staking"]["validators"]
+        .as_array()
+        .unwrap();
+
+    struct Total {
+        shares: U256,
+        tokens: U256,
+    }
+    let mut validators: BTreeMap<String, Total> = BTreeMap::new();
+    for validator in validators_value {
+        let shares = &validator["delegator_shares"];
+        let shares = shares.as_str().unwrap();
+        // the shares can be fractional, truncate at the decimal point
+        let i = shares.find('.').unwrap();
+        let shares = &shares[..i];
+        let shares = U256::from_dec_or_hex_str(shares).unwrap();
+        let tokens = U256::from_dec_or_hex_str(validator["tokens"].as_str().unwrap()).unwrap();
+        validators.insert(
+            validator["operator_address"].as_str().unwrap().to_owned(),
+            Total { shares, tokens },
+        );
+    }
+
     // use only bonded amounts
     let delegations: &[Value] = exported["app_state"]["staking"]["delegations"]
         .as_array()
@@ -57,14 +81,24 @@ async fn main() -> Result<()> {
         // the shares can be fractional, truncate at the decimal point
         let i = shares.find('.').unwrap();
         let shares = &shares[..i];
-        let shares: u128 = shares.parse().unwrap();
+        let shares = U256::from_dec_or_hex_str(shares).unwrap();
+
+        let total = validators
+            .get(delegation["validator_address"].as_str().unwrap())
+            .unwrap();
+
+        // delegated tokens = (shares * total_tokens) / total_shares
+        let tmp = shares.checked_mul(total.tokens).unwrap();
+        let tmp = tmp.divide(total.shares).unwrap().0;
+        let tmp = tmp.try_resize_to_u128().unwrap();
+
         match allocations.entry(address.to_owned()) {
             Entry::Vacant(v) => {
-                v.insert(shares);
+                v.insert(tmp);
             }
             Entry::Occupied(mut o) => {
                 // if multiple delegations from same address, add them up
-                *o.get_mut() += shares;
+                *o.get_mut() = o.get().checked_add(tmp).unwrap();
             }
         }
     }
