@@ -13,12 +13,12 @@ use serde_json::{ser::PrettyFormatter, Serializer, Value};
 
 const ONOMY_NODE: &str = "http://34.28.227.180:26657";
 const ONOMY_CHAIN_ID: &str = "onomy-testnet-1";
-const CONSUMER_CHAIN_ID: &str = "onex-testnet-2";
+const CONSUMER_CHAIN_ID: &str = "onex-testnet-3";
 const PROPOSAL: &str =
-    include_str!("./../../../../environments/testnet/onex-testnet-2/genesis-proposal.json");
-//const PARTIAL_GENESIS: &str =
-// include_str!("./../../../../environments/testnet/onex-testnet-2/
-// partial-genesis.json");
+    include_str!("./../../../../environments/testnet/onex-testnet-3/genesis-proposal.json");
+const PARTIAL_GENESIS: &str =
+    include_str!("./../../../../environments/testnet/onex-testnet-3/partial-genesis.json");
+const COMPLETE_GENESIS_PATH: &str = "./../environments/testnet/onex-testnet-3/genesis.json";
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -30,9 +30,30 @@ async fn main() -> Result<()> {
             _ => Err(Error::from(format!("entry_name \"{s}\" is not recognized"))),
         }
     } else {
+        let mut genesis: Value = serde_json::from_str(PARTIAL_GENESIS).stack()?;
+
         container_runner(&args, &[("onomyd", &dockerfile_onomyd())])
             .await
-            .stack()
+            .stack()?;
+
+        let state_s = FileOptions::read_to_string(&format!(
+            "./tests/logs/{CONSUMER_CHAIN_ID}_ccvconsumer_state.json"
+        ))
+        .await
+        .stack()?;
+        let state: Value = serde_json::from_str(&state_s).stack()?;
+        genesis["app_state"]["ccvconsumer"] = state.clone();
+
+        let mut genesis_s = vec![];
+        let formatter = PrettyFormatter::with_indent(&[b' ', b' ']);
+        let mut ser = Serializer::with_formatter(&mut genesis_s, formatter);
+        genesis.serialize(&mut ser).stack()?;
+        let genesis_s = String::from_utf8(genesis_s).stack()?;
+        FileOptions::write_str(COMPLETE_GENESIS_PATH, &genesis_s)
+            .await
+            .stack()?;
+
+        Ok(())
     }
 }
 
@@ -60,22 +81,17 @@ async fn onomyd_runner(_args: &Args) -> Result<()> {
     state["params"]["provider_reward_denoms"] = proposal["provider_reward_denoms"].clone();
     state["params"]["reward_denoms"] = proposal["reward_denoms"].clone();
 
-    //genesis["app_state"]["ccvconsumer"] = state;
-
     let mut state_s = vec![];
     let formatter = PrettyFormatter::with_indent(&[b' ', b' ']);
     let mut ser = Serializer::with_formatter(&mut state_s, formatter);
     state.serialize(&mut ser).stack()?;
     let state_s = String::from_utf8(state_s).stack()?;
-
     FileOptions::write_str(
         &format!("/logs/{CONSUMER_CHAIN_ID}_ccvconsumer_state.json"),
         &state_s,
     )
     .await
     .stack()?;
-
-    //sleep(TIMEOUT).await;
 
     Ok(())
 }
