@@ -1,13 +1,13 @@
 use common::{container_runner, dockerfile_onexd};
 use onomy_test_lib::{
-    cosmovisor::sh_cosmovisor,
+    cosmovisor::{sh_cosmovisor, wait_for_num_blocks},
     onomy_std_init,
     super_orchestrator::stacked_errors::{Error, Result, StackableErr},
     Args, TIMEOUT,
 };
 use tokio::time::sleep;
 
-const NODE: &str = "http://34.66.225.143:36657";
+const NODE: &str = "http://34.86.135.162:26657";
 const CHAIN_ID: &str = "onex-testnet-2";
 //const MNEMONIC: &str =
 // include_str!("./../../../../testnet_dealer_mnemonic.txt");
@@ -29,11 +29,11 @@ async fn main() -> Result<()> {
 }
 
 async fn onexd_runner(args: &Args) -> Result<()> {
-    // curl -s http://34.66.225.143:36657/consensus_state
+    // curl -s http://180.131.222.73:26756/consensus_state
     // /net_info
     // /validators
 
-    // http://34.66.225.143:36657/validators?
+    // http://34.86.135.162:26657/validators?
 
     // in order to access the 1317 port locally, use `docker inspect` to find the IP
     // address of the container from the host
@@ -49,6 +49,15 @@ async fn onexd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
     sh_cosmovisor("config keyring-backend test", &[])
+        .await
+        .stack()?;
+
+    sh_cosmovisor("query block", &[]).await.stack()?;
+    wait_for_num_blocks(1).await.stack()?;
+    sh_cosmovisor("query ccvconsumer next-fee-distribution", &[])
+        .await
+        .stack()?;
+    sh_cosmovisor("query slashing signing-infos", &[])
         .await
         .stack()?;
 

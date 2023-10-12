@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use onomy_test_lib::{
     dockerfiles::dockerfile_hermes,
     hermes::{hermes_start, sh_hermes, write_hermes_config, HermesChainConfig},
@@ -15,9 +13,9 @@ use onomy_test_lib::{
 use tokio::time::sleep;
 
 const ONOMY_NODE: &str = "34.145.158.212";
-const CONSUMER_NODE: &str = "34.145.158.212";
+const CONSUMER_NODE: &str = "34.86.135.162";
 const ONOMY_CHAIN_ID: &str = "onomy-testnet-1";
-const CONSUMER_CHAIN_ID: &str = "onex-testnet-2";
+const CONSUMER_CHAIN_ID: &str = "onex-testnet-3";
 const DEALER_MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
 
 #[tokio::main]
@@ -71,7 +69,7 @@ async fn container_runner(args: &Args) -> Result<()> {
     let uuid = cn.uuid_as_string();
     cn.add_common_entrypoint_args(&["--uuid", &uuid]);
 
-    let mut onex_hermes = HermesChainConfig::new(
+    let onex_hermes = HermesChainConfig::new(
         CONSUMER_CHAIN_ID,
         CONSUMER_NODE,
         "onomy",
@@ -79,9 +77,10 @@ async fn container_runner(args: &Args) -> Result<()> {
         "anom",
         false,
     );
-    onex_hermes.rpc_addr = format!("http://{CONSUMER_NODE}:36657");
-    onex_hermes.grpc_addr = format!("http://{CONSUMER_NODE}:9292");
-    onex_hermes.event_addr = format!("ws://{CONSUMER_NODE}:36657/websocket");
+    // in case the ports are changed from their defaults
+    //onex_hermes.rpc_addr = format!("http://{CONSUMER_NODE}:36657");
+    //onex_hermes.grpc_addr = format!("http://{CONSUMER_NODE}:9292");
+    //onex_hermes.event_addr = format!("ws://{CONSUMER_NODE}:36657/websocket");
 
     let mut onomy_hermes =
         HermesChainConfig::new(ONOMY_CHAIN_ID, ONOMY_NODE, "onomy", false, "anom", false);
@@ -129,11 +128,14 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
 
     // NOTE: if failure occurs in the middle, you will need to comment out parts
     // that have already succeeded
-    // a client is already created because of the ICS setup
+    // a client is already created because of the ICS setup,
+    // do not run this unless you are creating another kind of client
     //let client_pair = create_client_pair(a_chain, b_chain).await.stack()?;
+
     // create one client and connection pair that will be used for IBC transfer and
     // ICS communication
-    /*let connection_pair =
+    /*
+    let connection_pair =
         onomy_test_lib::hermes::create_connection_pair(&CONSUMER_CHAIN_ID, &ONOMY_CHAIN_ID)
             .await
             .stack()?;
@@ -146,14 +148,22 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
         true,
     )
     .await
-    .stack()?;*/
+    .stack()?;
+    */
 
     /*
+    // these should always be the same
     let provider = ONOMY_CHAIN_ID;
     let consumer = CONSUMER_CHAIN_ID;
     let consumer_channel = "channel-1";
     let consumer_connection = "connection-0";
-    let provider_connection = "connection-13";
+    */
+
+    // after running the above, figure out which provider connection is needed, the
+    // result should have it or you could query the hermes binary interactively
+
+    /*
+    let provider_connection = "connection-14";
     sh_hermes(
         &format!(
             "tx chan-open-try --dst-chain {provider} --src-chain {consumer} --dst-connection \
@@ -164,9 +174,11 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
     )
     .await
     .stack()?;
+    */
 
+    /*
     // get this from the above op
-    let provider_channel = "channel-6";
+    let provider_channel = "channel-8";
 
     sh_hermes(
         &format!(
@@ -193,7 +205,8 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
 
     // then we need to relay
     let mut hermes_runner = hermes_start("/logs/hermes_ics_runner.log").await.stack()?;
-    //ibc_pair.hermes_check_acks().await.stack()?;
+    sleep(TIMEOUT).await;
+    hermes_runner.terminate(TIMEOUT).await.stack()?;
 
     // hermes query packet pending --chain onomy-testnet-1 --port transfer --channel
     // channel-4
@@ -201,17 +214,6 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
     // hermes tx ft-transfer --dst-chain onex-testnet-1 --src-chain onomy-testnet-1
     // --src-port transfer --src-channel channel-4 --amount 100000000000 --denom
     // anom --timeout-height-offset 10 --timeout-seconds 60
-
-    // NOTE: must use a ed25519 tendermint key
-    // cosmovisor run tx staking create-validator --commission-max-change-rate 0.01
-    // --commission-max-rate 0.10 --commission-rate 0.05 --min-self-delegation 1
-    // --amount 100000000000aonex --from validator --pubkey
-    // '{"@type":"/cosmos.crypto.ed25519.PubKey","key":"1vMo7NN5rvX06zVmJ61KG00/
-    // KZB0H3rsmsoslRyaBds="}' -y -b block --fees 1000000anom
-
-    sleep(Duration::from_secs(9999)).await;
-
-    hermes_runner.terminate(TIMEOUT).await.stack()?;
 
     Ok(())
 }

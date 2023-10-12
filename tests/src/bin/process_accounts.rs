@@ -47,12 +47,9 @@ async fn main() -> Result<()> {
     genesis.serialize(&mut ser).stack()?;
     let genesis_s = String::from_utf8(genesis_s).stack()?;
 
-    FileOptions::write_str(
-        &format!("./tests/resources/onex_restart_1_genesis.json"),
-        &genesis_s,
-    )
-    .await
-    .stack()?;
+    FileOptions::write_str("./tests/resources/onex_restart_1_genesis.json", &genesis_s)
+        .await
+        .stack()?;
 
     Ok(())
 }
