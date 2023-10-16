@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{cmp::min, time::Duration};
 
 use common::{
     container_runner,
@@ -12,18 +12,18 @@ use onomy_test_lib::{
     onomy_std_init,
     super_orchestrator::{
         stacked_errors::{Error, Result, StackableErr},
-        Command,
+        Command, FileOptions,
     },
     Args, TIMEOUT,
 };
 use tokio::time::sleep;
 use u64_array_bigints::u256;
 
-const NODE: &str = "http://34.145.158.212:36657";
-const NODE_GRPC: &str = "http://34.145.158.212:9292";
-const CHAIN_ID: &str = "onex-testnet-2";
+const NODE: &str = "http://34.86.135.162:26657";
+const NODE_GRPC: &str = "http://34.86.135.162:9090";
+const CHAIN_ID: &str = "onex-testnet-3";
 const MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
-const RECORDS: &str = include_str!("./../../resources/onex-testnet-trade-war-filtered.csv");
+const RECORDS_PATH: &str = "/resources/onex-trade-war-filtered.ron";
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -81,7 +81,8 @@ async fn onexd_runner(args: &Args) -> Result<()> {
         addr
     );
 
-    let records: Vec<Record> = ron::from_str(RECORDS).stack()?;
+    let records = FileOptions::read_to_string(RECORDS_PATH).await.stack()?;
+    let records: Vec<Record> = ron::from_str(&records).stack()?;
     let msgs = get_txs(private_key, &records).stack()?;
 
     for record in &records {
@@ -90,27 +91,36 @@ async fn onexd_runner(args: &Args) -> Result<()> {
             .await
             .stack()?;
         if balances.len() > 1 {
+            // make sure they all have only aonex
             dbg!(record, balances);
             panic!();
         }
     }
 
-    // try submitting in one big batch
-    info!("submitting batch");
-    contact
-        .send_message(
-            &msgs,
-            None,
-            &[Coin {
-                denom: "anom".to_string(),
-                amount: u256!(1_000_000_000),
-            }],
-            Some(Duration::from_secs(20)),
-            private_key,
-        )
-        .await
-        .stack()?;
-
+    const BATCH_SIZE: usize = 1000;
+    let batch_start = 0;
+    for batch_i in batch_start.. {
+        let i_start = batch_i * BATCH_SIZE;
+        if i_start >= msgs.len() {
+            break
+        }
+        let i_end = min(i_start + BATCH_SIZE, msgs.len());
+        // try submitting in one big batch
+        info!("submitting batch {batch_i}");
+        contact
+            .send_message(
+                &msgs[i_start..i_end],
+                None,
+                &[Coin {
+                    denom: "anom".to_string(),
+                    amount: u256!(1_000_000_000),
+                }],
+                Some(Duration::from_secs(20)), // `None` may help with errors
+                private_key,
+            )
+            .await
+            .stack()?;
+    }
     info!("double checking");
 
     for record in &records {

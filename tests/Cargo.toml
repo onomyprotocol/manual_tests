@@ -17,8 +17,8 @@ chrono-tz = "0.8"
 clap = { version = "4", features = ["derive"] }
 cosmos-sdk-proto = { package = "cosmos-sdk-proto-althea", version = "0.13" }
 csv = "1.2"
-#deep_space = { git = "https://github.com/onomyprotocol/deep_space.git", rev = "36aa611a1ccfd4a48e1248d029a11cb026106254" }
-deep_space = { path = "./../../deep_space" }
+deep_space = { git = "https://github.com/onomyprotocol/deep_space.git", rev = "5c6e354ef3f2c8bb0f5a8f64921dba47182aaec1" }
+#deep_space = { path = "./../../deep_space" }
 log = "0.4"
 onomy_test_lib = { path = "./../../onomy_tests/onomy_test_lib" }
 ripemd = "0.1"

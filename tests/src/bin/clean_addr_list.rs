@@ -17,7 +17,7 @@ use onomy_test_lib::{
 async fn main() -> Result<()> {
     let _args = onomy_std_init()?;
 
-    let csv_file = FileOptions::read_to_string("./tests/resources/onex-testnet-trade-war.csv")
+    let csv_file = FileOptions::read_to_string("./tests/resources/onex-trade-war.csv")
         .await
         .stack()?;
     // remove the header line
@@ -69,12 +69,9 @@ async fn main() -> Result<()> {
     dbg!(records.len());
 
     let records_s = ron::to_string(&records).stack()?;
-    FileOptions::write_str(
-        "./tests/resources/onex-testnet-trade-war-filtered.csv",
-        &records_s,
-    )
-    .await
-    .stack()?;
+    FileOptions::write_str("./tests/resources/onex-trade-war-filtered.ron", &records_s)
+        .await
+        .stack()?;
 
     Ok(())
 }
