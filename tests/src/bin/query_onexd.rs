@@ -8,7 +8,7 @@ use onomy_test_lib::{
 use tokio::time::sleep;
 
 const NODE: &str = "http://34.86.135.162:26657";
-const CHAIN_ID: &str = "onex-testnet-2";
+const CHAIN_ID: &str = "onex-testnet-3";
 //const MNEMONIC: &str =
 // include_str!("./../../../../testnet_dealer_mnemonic.txt");
 
