@@ -263,8 +263,6 @@ async fn test_runner(args: &Args) -> Result<()> {
     sh_cosmovisor_no_dbg("init --overwrite --home /firehose", &[CHAIN_ID])
         .await
         .stack()?;
-    // TODO only for validators?
-    fast_block_times("/firehose").await.stack()?;
 
     FileOptions::write_str("/firehose/config/genesis.json", GENESIS)
         .await

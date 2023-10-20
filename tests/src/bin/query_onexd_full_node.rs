@@ -1,16 +1,28 @@
-use common::{container_runner, dockerfile_onexd};
+use common::dockerfile_onexd;
 use onomy_test_lib::{
-    cosmovisor::{sh_cosmovisor, wait_for_num_blocks},
+    cosmovisor::{
+        cosmovisor_start, set_persistent_peers, sh_cosmovisor, wait_for_num_blocks,
+        CosmovisorOptions,
+    },
     onomy_std_init,
-    super_orchestrator::stacked_errors::{Error, Result, StackableErr},
+    super_orchestrator::{
+        docker::{Container, ContainerNetwork, Dockerfile},
+        sh,
+        stacked_errors::{Error, Result, StackableErr},
+        FileOptions,
+    },
     Args, TIMEOUT,
 };
 use tokio::time::sleep;
 
-const NODE: &str = "http://34.86.135.162:26657";
+// note: if you ever get an error like "auth failure: secret conn failed: proto:
+// BytesValue: wiretype end group for non-group", it is likely because P2P is
+// going to the GRPC port instead of the correct one which is usually on port
+// 26656
+const GENESIS: &str =
+    include_str!("./../../../../environments/testnet/onex-testnet-3/genesis.json");
+const PEER_INFO: &str = "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.135.162:26656";
 const CHAIN_ID: &str = "onex-testnet-3";
-//const MNEMONIC: &str =
-// include_str!("./../../../../testnet_dealer_mnemonic.txt");
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -22,33 +34,72 @@ async fn main() -> Result<()> {
             _ => Err(Error::from(format!("entry_name \"{s}\" is not recognized"))),
         }
     } else {
-        container_runner(&args, &[("onexd", &dockerfile_onexd())])
-            .await
-            .stack()
+        container_runner(&args).await.stack()
     }
 }
 
+pub async fn container_runner(args: &Args) -> Result<()> {
+    let logs_dir = "./tests/logs";
+    let resources_dir = "./tests/resources";
+    let dockerfiles_dir = "./tests/dockerfiles";
+    let bin_entrypoint = &args.bin_name;
+    let container_target = "x86_64-unknown-linux-gnu";
+
+    // build internal runner
+    sh("cargo build --release --bin", &[
+        bin_entrypoint,
+        "--target",
+        container_target,
+    ])
+    .await
+    .stack()?;
+
+    let mut cn = ContainerNetwork::new(
+        "test",
+        vec![Container::new(
+            "onexd",
+            Dockerfile::Contents(dockerfile_onexd()),
+            Some(&format!(
+                "./target/{container_target}/release/{bin_entrypoint}"
+            )),
+            &["--entry-name", "onexd"],
+        )],
+        Some(dockerfiles_dir),
+        true,
+        logs_dir,
+    )
+    .stack()?;
+    cn.add_common_volumes(&[(logs_dir, "/logs"), (resources_dir, "/resources")]);
+    let uuid = cn.uuid_as_string();
+    cn.add_common_entrypoint_args(&["--uuid", &uuid]);
+    cn.run_all(true).await.stack()?;
+    cn.wait_with_timeout_all(true, TIMEOUT).await.stack()?;
+    cn.terminate_all().await;
+    Ok(())
+}
+
 async fn onexd_runner(args: &Args) -> Result<()> {
-    // curl -s http://180.131.222.73:26756/consensus_state
-    // /net_info
-    // /validators
+    //sleep(TIMEOUT).await;
+    let daemon_home = args.daemon_home.clone().stack()?;
 
-    // http://34.86.135.162:26657/validators?
-
-    // in order to access the 1317 port locally, use `docker inspect` to find the IP
-    // address of the container from the host
-    // http://172.21.0.2:1317/
-    // may need to use
-    //enable_swagger_apis(daemon_home).await.stack()?;
-    // but note it may take over a minute to start up
-
-    let _daemon_home = args.daemon_home.clone().stack()?;
-
-    sh_cosmovisor("config node", &[NODE]).await.stack()?;
+    //sh_cosmovisor("config node", &[NODE]).await.stack()?;
     sh_cosmovisor("config chain-id", &[CHAIN_ID])
         .await
         .stack()?;
     sh_cosmovisor("config keyring-backend test", &[])
+        .await
+        .stack()?;
+
+    FileOptions::write_str(&format!("{daemon_home}/config/genesis.json"), GENESIS)
+        .await
+        .stack()?;
+    set_persistent_peers(&daemon_home, &[PEER_INFO.to_owned()])
+        .await
+        .stack()?;
+
+    let options = CosmovisorOptions::new();
+    //options.
+    let mut cosmos_runner = cosmovisor_start("/logs/full_node.log", Some(options))
         .await
         .stack()?;
 
@@ -61,20 +112,8 @@ async fn onexd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    /*let comres = Command::new(
-        &format!("{daemon_home}/cosmovisor/current/bin/onexd keys add validator --recover"),
-        &[],
-    )
-    .run_with_input_to_completion(MNEMONIC.as_bytes())
-    .await
-    .stack()?;
-    comres.assert_success().stack()?;*/
-
-    //cosmovisor run tx bank send validator
-    // onomy1ll7pqzg9zscytvj9dmkl3kna50k0fundct62s7 1anom -y -b block --from
-    // validator
-
     sleep(TIMEOUT).await;
+    cosmos_runner.terminate(TIMEOUT).await.stack()?;
 
     Ok(())
 }
