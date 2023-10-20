@@ -3,7 +3,7 @@ use std::time::Duration;
 use common::{DOWNLOAD_ONEXD, ONEXD_FH_VERSION};
 use log::info;
 use onomy_test_lib::{
-    cosmovisor::{fast_block_times, set_persistent_peers, sh_cosmovisor, sh_cosmovisor_no_dbg},
+    cosmovisor::{set_persistent_peers, sh_cosmovisor, sh_cosmovisor_no_dbg},
     dockerfiles::{COSMOVISOR, ONOMY_STD},
     onomy_std_init,
     super_orchestrator::{
@@ -21,7 +21,7 @@ use tokio::time::sleep;
 
 const GENESIS: &str =
     include_str!("./../../../../environments/testnet/onex-testnet-3/genesis.json");
-const PEER_INFO: &str = "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.135.162:26657";
+const PEER_INFO: &str = "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.135.162:26656";
 const CHAIN_ID: &str = "onex-testnet-3";
 const BINARY_NAME: &str = "onexd";
 const BINARY_DIR: &str = ".onomy_onex";

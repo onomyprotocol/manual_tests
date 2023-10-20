@@ -97,8 +97,8 @@ async fn onexd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    let options = CosmovisorOptions::new();
-    //options.
+    let mut options = CosmovisorOptions::new();
+    options.wait_for_status_only = true;
     let mut cosmos_runner = cosmovisor_start("/logs/full_node.log", Some(options))
         .await
         .stack()?;
