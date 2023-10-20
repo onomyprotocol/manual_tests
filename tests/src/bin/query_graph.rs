@@ -16,6 +16,9 @@ use onomy_test_lib::{
 };
 use tokio::time::sleep;
 
+// NOTE: this binary stores stuff in /resources/query_graph. There is some code
+// that should be uncommented on the first run to initialize it
+
 // we use a normal onexd for the validator full node, but use the `-fh` version
 // for the full node that indexes for firehose
 
@@ -122,9 +125,6 @@ RUN cosmovisor init $DAEMON_HOME/cosmovisor/genesis/$DAEMON_VERSION/bin/{daemon_
 
 # some commands don't like if the data directory does not exist
 RUN mkdir $DAEMON_HOME/data
-
-RUN mkdir /firehose
-RUN mkdir /firehose/data
 "#
     )
 }
@@ -170,7 +170,8 @@ async fn container_runner(args: &Args) -> Result<()> {
         Dockerfile::Contents(standalone_dockerfile()),
         entrypoint,
         &["--entry-name", "test_runner"],
-    )];
+    )
+    .volumes(&[("./tests/resources/query_graph", "/firehose")])];
 
     let mut cn =
         ContainerNetwork::new("test", containers, Some(dockerfiles_dir), true, logs_dir).stack()?;
@@ -240,20 +241,8 @@ async fn test_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    // not needed if the correct envs were passed to the postgres docker instance
+    // uncomment for first run
     /*
-    // setup the postgres database
-    let comres = Command::new(
-        "createdb --host=postgres -U postgres graph-node",
-        &[],
-    )
-    .env("PGPASSWORD", "root")
-    .run_to_completion()
-    .await
-    .stack()?;
-    comres.assert_success().stack()?;
-    */
-
     sh_cosmovisor("config chain-id --home /firehose", &[CHAIN_ID])
         .await
         .stack()?;
@@ -263,30 +252,12 @@ async fn test_runner(args: &Args) -> Result<()> {
     sh_cosmovisor_no_dbg("init --overwrite --home /firehose", &[CHAIN_ID])
         .await
         .stack()?;
-
     FileOptions::write_str("/firehose/config/genesis.json", GENESIS)
         .await
         .stack()?;
     set_persistent_peers("/firehose", &[PEER_INFO.to_owned()])
         .await
         .stack()?;
-
-    // for debugging sync, firehose will run the node
-    /*
-    let mut cosmovisor_runner = cosmovisor_start(
-        "standalone_runner.log",
-        Some(CosmovisorOptions {
-            wait_for_status_only: true,
-            home: Some("/firehose".to_owned()),
-            ..Default::default()
-        }),
-    )
-    .await
-    .stack()?;
-    sleep(TIMEOUT).await;
-    cosmovisor_runner.terminate(TIMEOUT).await.stack()?;
-    */
-
     let mut config = FileOptions::read_to_string(CONFIG_TOML_PATH)
         .await
         .stack()?;
@@ -294,6 +265,7 @@ async fn test_runner(args: &Args) -> Result<()> {
     FileOptions::write_str(CONFIG_TOML_PATH, &config)
         .await
         .stack()?;
+    */
 
     let mut firecosmos_runner = Command::new(
         "firecosmos start --config /firehose/firehose.yml --data-dir /firehose/fh-data \
@@ -309,7 +281,7 @@ async fn test_runner(args: &Args) -> Result<()> {
     // should see stuff from
     //grpcurl -plaintext -max-time 1 localhost:9030 sf.firehose.v2.Stream/Blocks
 
-    sleep(TIMEOUT).await;
+    sleep(Duration::from_secs(9999)).await;
 
     async fn firecosmos_health() -> Result<()> {
         let comres = Command::new("curl -sL -w 200 http://localhost:9030 -o /dev/null", &[])
