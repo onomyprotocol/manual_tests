@@ -5,7 +5,7 @@ use std::time::Duration;
 use common::{DOWNLOAD_ONEXD, ONEXD_FH_VERSION};
 use log::info;
 use onomy_test_lib::{
-    cosmovisor::{set_persistent_peers, sh_cosmovisor, sh_cosmovisor_no_dbg},
+    cosmovisor::{set_persistent_peers, set_pruning, sh_cosmovisor, sh_cosmovisor_no_dbg},
     dockerfiles::{COSMOVISOR, ONOMY_STD},
     onomy_std_init,
     super_orchestrator::{
@@ -21,8 +21,9 @@ use tokio::time::sleep;
 // NOTE: this binary stores stuff in /resources/query_graph. There is some code
 // that should be uncommented on the first run to initialize it
 
-// NOTE: the `common-first-streamable-block` flag may need to be changed
-// depending on pruning settings
+// NOTE: you may need to turn off pruning or change the
+// `common-first-streamable-block` flag, and may need to uncomment a sleep line
+// to not timeout before syncing is complete
 
 // we use a normal onexd for the validator full node, but use the `-fh` version
 // for the full node that indexes for firehose
@@ -41,7 +42,7 @@ const FIREHOSE_CONFIG: &str = r#"start:
         - merger
         - firehose
     flags:
-        common-first-streamable-block: 170700
+        common-first-streamable-block: 1
         reader-mode: node
         reader-node-path: /root/.onomy_onex/cosmovisor/current/bin/onexd
         reader-node-args: start --x-crisis-skip-assert-invariants --home=/firehose
@@ -257,6 +258,8 @@ async fn test_runner(args: &Args) -> Result<()> {
     sh_cosmovisor_no_dbg("init --overwrite --home /firehose", &[CHAIN_ID])
         .await
         .stack()?;
+    // turn off pruning
+    set_pruning("/firehose", "").await.stack()?;
     FileOptions::write_str("/firehose/config/genesis.json", GENESIS)
         .await
         .stack()?;
