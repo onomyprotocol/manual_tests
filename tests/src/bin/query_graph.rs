@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::time::Duration;
 
 use common::{DOWNLOAD_ONEXD, ONEXD_FH_VERSION};
@@ -19,6 +21,9 @@ use tokio::time::sleep;
 // NOTE: this binary stores stuff in /resources/query_graph. There is some code
 // that should be uncommented on the first run to initialize it
 
+// NOTE: the `common-first-streamable-block` flag may need to be changed
+// depending on pruning settings
+
 // we use a normal onexd for the validator full node, but use the `-fh` version
 // for the full node that indexes for firehose
 
@@ -36,7 +41,7 @@ const FIREHOSE_CONFIG: &str = r#"start:
         - merger
         - firehose
     flags:
-        common-first-streamable-block: 1
+        common-first-streamable-block: 170700
         reader-mode: node
         reader-node-path: /root/.onomy_onex/cosmovisor/current/bin/onexd
         reader-node-args: start --x-crisis-skip-assert-invariants --home=/firehose
@@ -281,7 +286,7 @@ async fn test_runner(args: &Args) -> Result<()> {
     // should see stuff from
     //grpcurl -plaintext -max-time 1 localhost:9030 sf.firehose.v2.Stream/Blocks
 
-    sleep(Duration::from_secs(9999)).await;
+    //sleep(Duration::from_secs(9999)).await;
 
     async fn firecosmos_health() -> Result<()> {
         let comres = Command::new("curl -sL -w 200 http://localhost:9030 -o /dev/null", &[])
