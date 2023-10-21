@@ -259,7 +259,7 @@ async fn test_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
     // turn off pruning
-    set_pruning("/firehose", "").await.stack()?;
+    set_pruning("/firehose", "nothing").await.stack()?;
     FileOptions::write_str("/firehose/config/genesis.json", GENESIS)
         .await
         .stack()?;
