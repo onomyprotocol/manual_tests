@@ -33,6 +33,7 @@ async fn main() -> Result<()> {
 }
 
 async fn onomyd_runner(args: &Args) -> Result<()> {
+    // http://34.145.158.212:26657/validators?
     let daemon_home = args.daemon_home.as_ref().stack()?;
 
     sh_cosmovisor("config node", &[NODE]).await.stack()?;
@@ -40,6 +41,11 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
     sh_cosmovisor("config keyring-backend test", &[])
+        .await
+        .stack()?;
+
+    sh_cosmovisor("query block", &[]).await.stack()?;
+    sh_cosmovisor("query slashing signing-infos", &[])
         .await
         .stack()?;
 

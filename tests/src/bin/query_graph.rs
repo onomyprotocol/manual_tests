@@ -42,7 +42,7 @@ const FIREHOSE_CONFIG: &str = r#"start:
         - merger
         - firehose
     flags:
-        common-first-streamable-block: 1
+        common-first-streamable-block: 171100
         reader-mode: node
         reader-node-path: /root/.onomy_onex/cosmovisor/current/bin/onexd
         reader-node-args: start --x-crisis-skip-assert-invariants --home=/firehose

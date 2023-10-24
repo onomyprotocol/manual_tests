@@ -2,15 +2,17 @@ use common::{container_runner, dockerfile_onexd};
 use onomy_test_lib::{
     cosmovisor::{sh_cosmovisor, wait_for_num_blocks},
     onomy_std_init,
-    super_orchestrator::stacked_errors::{Error, Result, StackableErr},
+    super_orchestrator::{
+        stacked_errors::{Error, Result, StackableErr},
+        Command,
+    },
     Args, TIMEOUT,
 };
 use tokio::time::sleep;
 
 const NODE: &str = "http://34.86.135.162:26657";
 const CHAIN_ID: &str = "onex-testnet-3";
-//const MNEMONIC: &str =
-// include_str!("./../../../../testnet_dealer_mnemonic.txt");
+const MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -42,7 +44,7 @@ async fn onexd_runner(args: &Args) -> Result<()> {
     //enable_swagger_apis(daemon_home).await.stack()?;
     // but note it may take over a minute to start up
 
-    let _daemon_home = args.daemon_home.clone().stack()?;
+    let daemon_home = args.daemon_home.clone().stack()?;
 
     sh_cosmovisor("config node", &[NODE]).await.stack()?;
     sh_cosmovisor("config chain-id", &[CHAIN_ID])
@@ -61,18 +63,23 @@ async fn onexd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    /*let comres = Command::new(
+    let comres = Command::new(
         &format!("{daemon_home}/cosmovisor/current/bin/onexd keys add validator --recover"),
         &[],
     )
     .run_with_input_to_completion(MNEMONIC.as_bytes())
     .await
     .stack()?;
-    comres.assert_success().stack()?;*/
+    comres.assert_success().stack()?;
 
     //cosmovisor run tx bank send validator
     // onomy1ll7pqzg9zscytvj9dmkl3kna50k0fundct62s7 1anom -y -b block --from
     // validator
+
+    // ausdc,ausdt
+
+    //cosmovisor run tx market create-order ausdc ausdt limit 1000000 1000,1000 0
+    // 23 --fees 1000000anom -y -b block --from validator
 
     sleep(TIMEOUT).await;
 
