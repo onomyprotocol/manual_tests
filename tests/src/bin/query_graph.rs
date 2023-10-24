@@ -2,6 +2,7 @@
 
 use std::time::Duration;
 
+use clap::Parser;
 use common::{DOWNLOAD_ONEXD, ONEXD_FH_VERSION};
 use log::info;
 use onomy_test_lib::{
@@ -28,12 +29,19 @@ use tokio::time::sleep;
 // we use a normal onexd for the validator full node, but use the `-fh` version
 // for the full node that indexes for firehose
 
-const GENESIS: &str =
-    include_str!("./../../../../environments/testnet/onex-testnet-3/genesis.json");
-const PEER_INFO: &str = "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.135.162:26656";
+// when running for the first time or after `/resources/query_graph` has been cleaned, pass
+// `--first-time` which will properly initialize it
+
+// pass `--genesis-path ...` to select a different path to a genesis (relative to the root of the
+// repo)
+// pass `--peer-info ...` to select a different peer for the firehose node to use
+
+const DEFAULT_GENESIS_PATH: &str = "./../environments/testnet/onex-testnet-3/genesis.json";
+const DEFAULT_PEER_INFO: &str = "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.135.162:26656";
 const CHAIN_ID: &str = "onex-testnet-3";
 const BINARY_NAME: &str = "onexd";
 const BINARY_DIR: &str = ".onomy_onex";
+
 const FIREHOSE_CONFIG_PATH: &str = "/firehose/firehose.yml";
 const FIREHOSE_CONFIG: &str = r#"start:
     args:
@@ -247,33 +255,32 @@ async fn test_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    // uncomment for first run
-    /*
-    sh_cosmovisor("config chain-id --home /firehose", &[CHAIN_ID])
-        .await
-        .stack()?;
-    sh_cosmovisor("config keyring-backend test --home /firehose", &[])
-        .await
-        .stack()?;
-    sh_cosmovisor_no_dbg("init --overwrite --home /firehose", &[CHAIN_ID])
-        .await
-        .stack()?;
-    // turn off pruning
-    set_pruning("/firehose", "nothing").await.stack()?;
-    FileOptions::write_str("/firehose/config/genesis.json", GENESIS)
-        .await
-        .stack()?;
-    set_persistent_peers("/firehose", &[PEER_INFO.to_owned()])
-        .await
-        .stack()?;
-    let mut config = FileOptions::read_to_string(CONFIG_TOML_PATH)
-        .await
-        .stack()?;
-    config.push_str(EXTRACTOR_CONFIG);
-    FileOptions::write_str(CONFIG_TOML_PATH, &config)
-        .await
-        .stack()?;
-    */
+    if args.first_run {
+        sh_cosmovisor("config chain-id --home /firehose", &[CHAIN_ID])
+            .await
+            .stack()?;
+        sh_cosmovisor("config keyring-backend test --home /firehose", &[])
+            .await
+            .stack()?;
+        sh_cosmovisor_no_dbg("init --overwrite --home /firehose", &[CHAIN_ID])
+            .await
+            .stack()?;
+        // turn off pruning
+        set_pruning("/firehose", "nothing").await.stack()?;
+        FileOptions::write_str("/firehose/config/genesis.json", args.genesis_path.as_deref().unwrap_or(DEFAULT_GENESIS_PATH))
+            .await
+            .stack()?;
+        set_persistent_peers("/firehose", &[args.peer_info.as_deref().unwrap_or(DEFAULT_PEER_INFO).to_owned()])
+            .await
+            .stack()?;
+        let mut config = FileOptions::read_to_string(CONFIG_TOML_PATH)
+            .await
+            .stack()?;
+        config.push_str(EXTRACTOR_CONFIG);
+        FileOptions::write_str(CONFIG_TOML_PATH, &config)
+            .await
+            .stack()?;
+    }
 
     let mut firecosmos_runner = Command::new(
         "firecosmos start --config /firehose/firehose.yml --data-dir /firehose/fh-data \
@@ -299,7 +306,8 @@ async fn test_runner(args: &Args) -> Result<()> {
         comres.assert_success().stack()?;
         Ok(())
     }
-    wait_for_ok(100, Duration::from_secs(1), firecosmos_health)
+    info!("waiting for firehose, check logs to make sure it is syncing");
+    wait_for_ok(3600, Duration::from_secs(1), firecosmos_health)
         .await
         .stack()?;
     info!("firehose is up");
