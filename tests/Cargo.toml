@@ -17,16 +17,16 @@ chrono-tz = "0.8"
 clap = { version = "4", features = ["derive"] }
 cosmos-sdk-proto = { package = "cosmos-sdk-proto-althea", version = "0.13" }
 csv = "1.2"
-deep_space = { git = "https://github.com/onomyprotocol/deep_space.git", rev = "5c6e354ef3f2c8bb0f5a8f64921dba47182aaec1" }
 #deep_space = { path = "./../../deep_space" }
+deep_space = { git = "https://github.com/onomyprotocol/deep_space.git", rev = "5c6e354ef3f2c8bb0f5a8f64921dba47182aaec1" }
 log = "0.4"
-onomy_test_lib = { path = "./../../onomy_tests/onomy_test_lib" }
+#onomy_test_lib = { path = "./../../onomy_tests/onomy_test_lib" }
+onomy_test_lib = { git = "https://github.com/pendulum-labs/onomy_tests", rev = "9fa53441710f244635a08db48d941ac32bb294f0" }
 ripemd = "0.1"
 ron = "0.8"
 serde = "1.0"
 serde_json = "1.0"
 sha2 = "0.10"
-#onomy_test_lib = { git = "https://github.com/pendulum-labs/onomy_tests", rev = "e4c28c1cce89e2f641113320b40a5ecc91c47dea" }
 tokio = { version = "1", default-features = false }
 u64_array_bigints = { version = "0.3", default-features = false }
 
