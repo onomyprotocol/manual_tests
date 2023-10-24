@@ -208,14 +208,19 @@ async fn container_runner(args: &Args) -> Result<()> {
             .stack()?;
     }
 
+    // copy it into place for the test runner to use
+    let genesis =
+        FileOptions::read_to_string(args.genesis_path.as_deref().unwrap_or(DEFAULT_GENESIS_PATH))
+            .await
+            .stack()?;
+    FileOptions::write_str("./tests/resources/__tmp_genesis.json", &genesis)
+        .await
+        .stack()?;
+
     let mut test_runner_args = vec!["--entry-name", "test_runner"];
     // pass on these args to the test runner
     if args.first_run {
         test_runner_args.push("--first-run");
-    }
-    if let Some(ref genesis_path) = args.genesis_path {
-        test_runner_args.push("--genesis-path");
-        test_runner_args.push(genesis_path);
     }
     if let Some(ref peer_info) = args.peer_info {
         test_runner_args.push("--peer-info");
@@ -231,6 +236,7 @@ async fn container_runner(args: &Args) -> Result<()> {
         &test_runner_args,
     )
     .volumes(&[("./tests/resources/query_graph", "/firehose")])
+    .volumes(&[("./tests/resources/__tmp_genesis.json", "/resources/__tmp_genesis.json")])
     .create_args(&["-p", "8000:8000"])];
 
     let mut cn =
@@ -279,14 +285,6 @@ async fn test_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    FileOptions::write_str(GRAPH_NODE_CONFIG_PATH, GRAPH_NODE_CONFIG)
-        .await
-        .stack()?;
-
-    FileOptions::write_str(FIREHOSE_CONFIG_PATH, FIREHOSE_CONFIG)
-        .await
-        .stack()?;
-
     async fn postgres_health(uuid: &str) -> Result<()> {
         let comres = Command::new(
             &format!("psql --host=postgres_{uuid} -U postgres --command=\\l"),
@@ -317,7 +315,9 @@ async fn test_runner(args: &Args) -> Result<()> {
         set_pruning("/firehose", "nothing").await.stack()?;
         FileOptions::write_str(
             "/firehose/config/genesis.json",
-            args.genesis_path.as_deref().unwrap_or(DEFAULT_GENESIS_PATH),
+            &FileOptions::read_to_string("/resources/__tmp_genesis.json")
+                .await
+                .stack()?,
         )
         .await
         .stack()?;
@@ -330,6 +330,7 @@ async fn test_runner(args: &Args) -> Result<()> {
             .stack()?;
     }
 
+    // overwrite these every time
     set_persistent_peers("/firehose", &[args
         .peer_info
         .as_deref()
@@ -337,6 +338,13 @@ async fn test_runner(args: &Args) -> Result<()> {
         .to_owned()])
     .await
     .stack()?;
+    FileOptions::write_str(GRAPH_NODE_CONFIG_PATH, GRAPH_NODE_CONFIG)
+        .await
+        .stack()?;
+
+    FileOptions::write_str(FIREHOSE_CONFIG_PATH, FIREHOSE_CONFIG)
+        .await
+        .stack()?;
 
     let mut firecosmos_runner = Command::new(
         "firecosmos start --config /firehose/firehose.yml --data-dir /firehose/fh-data \
