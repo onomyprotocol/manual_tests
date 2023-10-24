@@ -29,12 +29,15 @@ use tokio::time::sleep;
 // we use a normal onexd for the validator full node, but use the `-fh` version
 // for the full node that indexes for firehose
 
-// when running for the first time or after `/resources/query_graph` has been cleaned, pass
-// `--first-time` which will properly initialize it
+// when running for the first time or after `/resources/query_graph` has been
+// cleaned, pass `--first-time` which will properly initialize it
 
-// pass `--genesis-path ...` to select a different path to a genesis (relative to the root of the
-// repo)
-// pass `--peer-info ...` to select a different peer for the firehose node to use
+// pass `--genesis-path ...` to select a different path to a genesis (relative
+// to the root of the repo)
+// pass `--peer-info ...` to select a different peer for the firehose node to
+// use
+
+// the 8000 port is exposed
 
 const DEFAULT_GENESIS_PATH: &str = "./../environments/testnet/onex-testnet-3/genesis.json";
 const DEFAULT_PEER_INFO: &str = "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.135.162:26656";
@@ -185,7 +188,8 @@ async fn container_runner(args: &Args) -> Result<()> {
         entrypoint,
         &["--entry-name", "test_runner"],
     )
-    .volumes(&[("./tests/resources/query_graph", "/firehose")])];
+    .volumes(&[("./tests/resources/query_graph", "/firehose")])
+    .create_args(&["-p", "8000:8000"])];
 
     let mut cn =
         ContainerNetwork::new("test", containers, Some(dockerfiles_dir), true, logs_dir).stack()?;
@@ -267,12 +271,19 @@ async fn test_runner(args: &Args) -> Result<()> {
             .stack()?;
         // turn off pruning
         set_pruning("/firehose", "nothing").await.stack()?;
-        FileOptions::write_str("/firehose/config/genesis.json", args.genesis_path.as_deref().unwrap_or(DEFAULT_GENESIS_PATH))
-            .await
-            .stack()?;
-        set_persistent_peers("/firehose", &[args.peer_info.as_deref().unwrap_or(DEFAULT_PEER_INFO).to_owned()])
-            .await
-            .stack()?;
+        FileOptions::write_str(
+            "/firehose/config/genesis.json",
+            args.genesis_path.as_deref().unwrap_or(DEFAULT_GENESIS_PATH),
+        )
+        .await
+        .stack()?;
+        set_persistent_peers("/firehose", &[args
+            .peer_info
+            .as_deref()
+            .unwrap_or(DEFAULT_PEER_INFO)
+            .to_owned()])
+        .await
+        .stack()?;
         let mut config = FileOptions::read_to_string(CONFIG_TOML_PATH)
             .await
             .stack()?;
