@@ -213,7 +213,7 @@ async fn container_runner(args: &Args) -> Result<()> {
         FileOptions::read_to_string(args.genesis_path.as_deref().unwrap_or(DEFAULT_GENESIS_PATH))
             .await
             .stack()?;
-    FileOptions::write_str("./tests/resources/__tmp_genesis.json", &genesis)
+    FileOptions::write_str("./tests/resources/query_graph/__tmp_genesis.json", &genesis)
         .await
         .stack()?;
 
@@ -235,8 +235,9 @@ async fn container_runner(args: &Args) -> Result<()> {
         entrypoint,
         &test_runner_args,
     )
+    // note that trying to add a ./tests/resources/ volume in addition to this will bork the docker
+    // volume locally
     .volumes(&[("./tests/resources/query_graph", "/firehose")])
-    .volumes(&[("./tests/resources/__tmp_genesis.json", "/resources/__tmp_genesis.json")])
     .create_args(&["-p", "8000:8000"])];
 
     let mut cn =
@@ -315,7 +316,7 @@ async fn test_runner(args: &Args) -> Result<()> {
         set_pruning("/firehose", "nothing").await.stack()?;
         FileOptions::write_str(
             "/firehose/config/genesis.json",
-            &FileOptions::read_to_string("/resources/__tmp_genesis.json")
+            &FileOptions::read_to_string("/firehose/__tmp_genesis.json")
                 .await
                 .stack()?,
         )
