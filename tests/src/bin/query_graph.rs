@@ -10,17 +10,18 @@ use onomy_test_lib::{
     dockerfiles::{COSMOVISOR, ONOMY_STD},
     onomy_std_init,
     super_orchestrator::{
+        acquire_dir_path,
         docker::{Container, ContainerNetwork, Dockerfile},
         sh,
         stacked_errors::{Error, Result, StackableErr},
         wait_for_ok, Command, FileOptions,
     },
-    Args, TIMEOUT,
+    Args,
 };
 use tokio::time::sleep;
 
-// NOTE: this binary stores stuff in /resources/query_graph. There is some code
-// that should be uncommented on the first run to initialize it
+// NOTE: this binary persists cosmos, firehose, and postgres data in
+// .../resources/query_graph.
 
 // NOTE: you may need to turn off pruning or change the
 // `common-first-streamable-block` flag, and may need to uncomment a sleep line
@@ -29,13 +30,16 @@ use tokio::time::sleep;
 // we use a normal onexd for the validator full node, but use the `-fh` version
 // for the full node that indexes for firehose
 
+// Pass `--peer-info ...` to select the peer for the firehose node to
+// use, otherwise it will change to `DEFAULT_PEER_INFO` on every run.
+
 // when running for the first time or after `/resources/query_graph` has been
 // cleaned, pass `--first-time` which will properly initialize it
-
-// pass `--genesis-path ...` to select a different path to a genesis (relative
-// to the root of the repo)
-// pass `--peer-info ...` to select a different peer for the firehose node to
-// use
+// Also on `--first-time`,
+// Pass `--genesis-path ...` to select a different path to a genesis (relative
+// to the root of the repo),
+// but afterwards you may have to cd into /resource/query_graph to manually
+// change them
 
 // the 8000 port is exposed
 
@@ -44,6 +48,8 @@ const DEFAULT_PEER_INFO: &str = "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.
 const CHAIN_ID: &str = "onex-testnet-3";
 const BINARY_NAME: &str = "onexd";
 const BINARY_DIR: &str = ".onomy_onex";
+// time until the program ends after everything is deployed
+const END_TIMEOUT: Duration = Duration::from_secs(1_000_000_000);
 
 const FIREHOSE_CONFIG_PATH: &str = "/firehose/firehose.yml";
 const FIREHOSE_CONFIG: &str = r#"start:
@@ -53,7 +59,7 @@ const FIREHOSE_CONFIG: &str = r#"start:
         - merger
         - firehose
     flags:
-        common-first-streamable-block: 1
+        common-first-streamable-block: 171100
         reader-mode: node
         reader-node-path: /root/.onomy_onex/cosmovisor/current/bin/onexd
         reader-node-args: start --x-crisis-skip-assert-invariants --home=/firehose
@@ -180,13 +186,49 @@ async fn container_runner(args: &Args) -> Result<()> {
     ));
     let entrypoint = entrypoint.as_deref();
 
+    // we can't put these in source control with the .gitignore trick,
+    // because postgres doesn't like it
+    acquire_dir_path("./tests/resources/")
+        .await
+        .stack_err(|| "you need to run from the repo root");
+    if acquire_dir_path("./tests/resources/query_graph")
+        .await
+        .is_err()
+    {
+        sh("mkdir ./tests/resources/query_graph", &[])
+            .await
+            .stack()?;
+    }
+    if acquire_dir_path("./tests/resources/query_graph/postgres-data")
+        .await
+        .is_err()
+    {
+        sh("mkdir ./tests/resources/query_graph/postgres-data", &[])
+            .await
+            .stack()?;
+    }
+
+    let mut test_runner_args = vec!["--entry-name", "test_runner"];
+    // pass on these args to the test runner
+    if args.first_run {
+        test_runner_args.push("--first-run");
+    }
+    if let Some(ref genesis_path) = args.genesis_path {
+        test_runner_args.push("--genesis-path");
+        test_runner_args.push(genesis_path);
+    }
+    if let Some(ref peer_info) = args.peer_info {
+        test_runner_args.push("--peer-info");
+        test_runner_args.push(peer_info);
+    }
+
     // we use a normal onexd for the validator full node, but use the `-fh` version
     // for the full node that indexes for firehose
     let containers = vec![Container::new(
         "test_runner",
         Dockerfile::Contents(standalone_dockerfile()),
         entrypoint,
-        &["--entry-name", "test_runner"],
+        &test_runner_args,
     )
     .volumes(&[("./tests/resources/query_graph", "/firehose")])
     .create_args(&["-p", "8000:8000"])];
@@ -203,6 +245,10 @@ async fn container_runner(args: &Args) -> Result<()> {
             None,
             &[],
         )
+        .volumes(&[(
+            "./tests/resources/query_graph/postgres-data",
+            "/var/lib/postgresql/data",
+        )])
         .environment_vars(&[
             ("POSTGRES_PASSWORD", "root"),
             ("POSTGRES_USER", "postgres"),
@@ -214,9 +260,7 @@ async fn container_runner(args: &Args) -> Result<()> {
     .stack()?;
 
     cn.run_all(true).await.stack()?;
-    cn.wait_with_timeout_all(true, Duration::from_secs(9999))
-        .await
-        .stack()?;
+    cn.wait_with_timeout_all(true, END_TIMEOUT).await.stack()?;
     cn.terminate_all().await;
     Ok(())
 }
@@ -277,13 +321,6 @@ async fn test_runner(args: &Args) -> Result<()> {
         )
         .await
         .stack()?;
-        set_persistent_peers("/firehose", &[args
-            .peer_info
-            .as_deref()
-            .unwrap_or(DEFAULT_PEER_INFO)
-            .to_owned()])
-        .await
-        .stack()?;
         let mut config = FileOptions::read_to_string(CONFIG_TOML_PATH)
             .await
             .stack()?;
@@ -292,6 +329,14 @@ async fn test_runner(args: &Args) -> Result<()> {
             .await
             .stack()?;
     }
+
+    set_persistent_peers("/firehose", &[args
+        .peer_info
+        .as_deref()
+        .unwrap_or(DEFAULT_PEER_INFO)
+        .to_owned()])
+    .await
+    .stack()?;
 
     let mut firecosmos_runner = Command::new(
         "firecosmos start --config /firehose/firehose.yml --data-dir /firehose/fh-data \
@@ -318,7 +363,9 @@ async fn test_runner(args: &Args) -> Result<()> {
         Ok(())
     }
     info!("waiting for firehose, check logs to make sure it is syncing");
-    wait_for_ok(3600, Duration::from_secs(1), firecosmos_health)
+    // note: if this is failing but it seems to be syncing according to the logs,
+    // you may need to increase the number of retries
+    wait_for_ok(100, Duration::from_secs(1), firecosmos_health)
         .await
         .stack()?;
     info!("firehose is up");
@@ -359,7 +406,7 @@ async fn test_runner(args: &Args) -> Result<()> {
     comres.assert_success().stack()?;
     let comres = Command::new(
         "graph deploy --version-label v0.0.0 --node http://localhost:8020/ \
-        --ipfs http://localhost:5001 onomyprotocol/mgraph",
+            --ipfs http://localhost:5001 onomyprotocol/mgraph",
         &[],
     )
     .cwd("/mgraph")
@@ -369,11 +416,14 @@ async fn test_runner(args: &Args) -> Result<()> {
     .stack()?;
     comres.assert_success().stack()?;
 
+    info!("subgraph deployed");
+    info!("all things deployed, check for syncing");
+
     // grpcurl -plaintext -max-time 2 localhost:9030 sf.firehose.v2.Stream/Blocks
     // note: we may need to pass the proto files, I don't know if reflection is not
     // working and that's why it has errors
 
-    sleep(Duration::from_secs(9999)).await;
+    sleep(END_TIMEOUT).await;
 
     sleep(Duration::ZERO).await;
     graph_runner.terminate().await.stack()?;
