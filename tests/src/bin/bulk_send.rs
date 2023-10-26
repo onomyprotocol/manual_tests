@@ -85,7 +85,12 @@ async fn onexd_runner(args: &Args) -> Result<()> {
     let records: Vec<Record> = ron::from_str(&records).stack()?;
     let msgs = get_txs(private_key, &records).stack()?;
 
-    for record in &records {
+    assert_eq!(msgs.len(), 3885);
+
+    for (i, record) in records.iter().enumerate() {
+        if (i % 100) == 0 {
+            info!("checked addr {i}")
+        }
         let balances = contact
             .get_balances(Address::from_bech32(record.addr.clone()).stack()?)
             .await
