@@ -2,7 +2,7 @@ use cosmos_sdk_proto::cosmos::bank::v1beta1::MsgSend;
 use deep_space::{u256, Coin, Msg, PrivateKey};
 use onomy_test_lib::{
     reprefix_bech32,
-    super_orchestrator::stacked_errors::{Result, StackableErr},
+    super_orchestrator::stacked_errors::{ensure_eq, Result, StackableErr},
 };
 use serde::{Deserialize, Serialize};
 
@@ -47,9 +47,9 @@ impl Record {
     pub fn verify(&self, prefix: &str) -> Result<()> {
         use bech32::Variant;
         let (prefix1, data, variant) = bech32::decode(&self.addr).stack()?;
-        assert_eq!(prefix1, prefix);
-        assert_eq!(variant, Variant::Bech32);
-        assert_eq!(data.len(), 32);
+        ensure_eq!(prefix1, prefix);
+        ensure_eq!(variant, Variant::Bech32);
+        ensure_eq!(data.len(), 32);
         Ok(())
     }
 }

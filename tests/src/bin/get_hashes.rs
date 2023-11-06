@@ -15,13 +15,13 @@ const FILE: &str = include_str!("./../../../../environments/testnet/onex-testnet
 
 async fn get_hash(bytes: &[u8]) -> Result<()> {
     let comres = Command::new("openssl dgst -binary -sha256", &[])
-        .ci_mode(true)
+        .debug(true)
         .run_with_input_to_completion(bytes)
         .await
         .stack()?;
     comres.assert_success().stack()?;
     let comres = Command::new("openssl base64 -A", &[])
-        .ci_mode(true)
+        .debug(true)
         .run_with_input_to_completion(&comres.stdout)
         .await
         .stack()?;

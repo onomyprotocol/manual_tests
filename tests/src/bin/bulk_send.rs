@@ -11,7 +11,7 @@ use onomy_test_lib::{
     cosmovisor::{cosmovisor_get_addr, sh_cosmovisor},
     onomy_std_init,
     super_orchestrator::{
-        stacked_errors::{Error, Result, StackableErr},
+        stacked_errors::{ensure, ensure_eq, Error, Result, StackableErr},
         Command, FileOptions,
     },
     Args, TIMEOUT,
@@ -66,13 +66,13 @@ async fn onexd_runner(args: &Args) -> Result<()> {
     // have a guard to prevent accidents
     let addr = &cosmovisor_get_addr("validator").await.stack()?;
     info!("ADDR: {addr}");
-    assert_eq!(addr, "onomy1yks83spz6lvrrys8kh0untt22399tskk6jafcv");
+    ensure_eq!(addr, "onomy1yks83spz6lvrrys8kh0untt22399tskk6jafcv");
 
     let contact = deep_space::Contact::new(NODE_GRPC, TIMEOUT, "onomy").stack()?;
     dbg!(contact.query_total_supply().await.stack()?);
 
     let private_key = get_private_key(MNEMONIC).stack()?;
-    assert_eq!(
+    ensure_eq!(
         &private_key
             .to_address("onomy")
             .stack()?
@@ -85,7 +85,7 @@ async fn onexd_runner(args: &Args) -> Result<()> {
     let records: Vec<Record> = ron::from_str(&records).stack()?;
     let msgs = get_txs(private_key, &records).stack()?;
 
-    assert_eq!(msgs.len(), 3885);
+    ensure_eq!(msgs.len(), 3885);
 
     for (i, record) in records.iter().enumerate() {
         if (i % 100) == 0 {
@@ -133,7 +133,7 @@ async fn onexd_runner(args: &Args) -> Result<()> {
             .get_balances(Address::from_bech32(record.addr.clone()).stack()?)
             .await
             .stack()?;
-        assert!(balances.len() >= 5);
+        ensure!(balances.len() >= 5);
     }
 
     info!("successful");

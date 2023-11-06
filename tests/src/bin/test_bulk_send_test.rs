@@ -13,7 +13,7 @@ use onomy_test_lib::{
     setups::{onomyd_setup, CosmosSetupOptions},
     super_orchestrator::{
         sh,
-        stacked_errors::{Error, Result, StackableErr},
+        stacked_errors::{ensure, ensure_eq, Error, Result, StackableErr},
         FileOptions,
     },
     Args, TIMEOUT,
@@ -63,13 +63,13 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
     // guard to prevent accidents
     let addr = &cosmovisor_get_addr("validator").await.stack()?;
     info!("ADDR: {addr}");
-    assert_eq!(addr, "onomy19rl4cm2hmr8afy4kldpxz3fka4jguq0axpetws");
+    ensure_eq!(addr, "onomy19rl4cm2hmr8afy4kldpxz3fka4jguq0axpetws");
 
     let contact = deep_space::Contact::new("http://127.0.0.1:9090", TIMEOUT, "onomy").stack()?;
     dbg!(contact.query_total_supply().await.stack()?);
 
     let private_key = get_private_key(MNEMONIC).stack()?;
-    assert_eq!(
+    ensure_eq!(
         &private_key
             .to_address("onomy")
             .stack()?
@@ -176,7 +176,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
             .get_balances(Address::from_bech32(record.addr.clone()).stack()?)
             .await
             .stack()?;
-        assert!(balances.len() >= 5);
+        ensure!(balances.len() >= 5);
     }
 
     info!("successful");

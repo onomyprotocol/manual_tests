@@ -16,12 +16,12 @@ use onomy_test_lib::{
         docker::{Container, ContainerNetwork, Dockerfile},
         net_message::NetMessenger,
         remove_files_in_dir, sh,
-        stacked_errors::{Error, Result, StackableErr},
-        Command, FileOptions, STD_DELAY, STD_TRIES,
+        stacked_errors::{ensure, ensure_eq, Error, Result, StackableErr},
+        Command, FileOptions,
     },
     token18, u64_array_bigints,
     u64_array_bigints::u256,
-    Args, ONOMY_IBC_NOM, TIMEOUT,
+    Args, ONOMY_IBC_NOM, STD_DELAY, STD_TRIES, TIMEOUT,
 };
 use serde_json::{json, Value};
 use tokio::time::sleep;
@@ -408,7 +408,7 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
     // recieve round trip signal
     nm_consumer.recv::<()>().await?;
     // check that the IBC NOM converted back to regular NOM
-    assert_eq!(
+    ensure_eq!(
         cosmovisor_get_balances("onomy1gk7lg5kd73mcr8xuyw727ys22t7mtz9gh07ul3").await?["anom"],
         u256!(5000)
     );
@@ -490,9 +490,9 @@ async fn consumer(args: &Args) -> Result<()> {
     // get the name of the IBC NOM. Note that we can't do this on the onomyd side,
     // it has to be with respect to the consumer side
     let ibc_nom = &ibc_pair.a.get_ibc_denom("anom").await?;
-    assert_eq!(ibc_nom, ONOMY_IBC_NOM);
+    ensure_eq!(ibc_nom, ONOMY_IBC_NOM);
     let balances = cosmovisor_get_balances(addr).await?;
-    assert!(balances.contains_key(ibc_nom));
+    ensure!(balances.contains_key(ibc_nom));
 
     // test normal transfer
     let dst_addr = &reprefix_bech32(
@@ -500,7 +500,7 @@ async fn consumer(args: &Args) -> Result<()> {
         CONSUMER_ACCOUNT_PREFIX,
     )?;
     cosmovisor_bank_send(addr, dst_addr, "5000", "akudos").await?;
-    assert_eq!(
+    ensure_eq!(
         cosmovisor_get_balances(dst_addr).await?["akudos"],
         u256!(5000)
     );
@@ -561,7 +561,7 @@ async fn consumer(args: &Args) -> Result<()> {
 
     // signal to check for IBC Kudos conversion
     nm_onomyd.recv::<()>().await?;
-    assert_eq!(
+    ensure_eq!(
         cosmovisor_get_balances(KUDOS_TEST_ADDR).await?["akudos"],
         u256!(7000)
     );
