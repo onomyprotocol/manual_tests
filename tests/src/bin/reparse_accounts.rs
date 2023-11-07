@@ -5,7 +5,7 @@ use onomy_test_lib::{
     onomy_std_init,
     super_orchestrator::{
         stacked_errors::{Result, StackableErr},
-        FileOptions,
+        stacked_get, stacked_get_mut, FileOptions,
     },
 };
 use serde::ser::Serialize;
@@ -39,9 +39,9 @@ async fn main() -> Result<()> {
     let exported: Value = serde_json::from_str(&exported_genesis).stack()?;
     let mut genesis: Value = serde_json::from_str(&partial_genesis_without_accounts).stack()?;
 
-    let validators_value: &[Value] = exported["app_state"]["staking"]["validators"]
+    let validators_value: &[Value] = stacked_get!(exported["app_state"]["staking"]["validators"])
         .as_array()
-        .unwrap();
+        .stack()?;
 
     struct Total {
         shares: U256,
@@ -63,20 +63,20 @@ async fn main() -> Result<()> {
     }
 
     // use only bonded amounts
-    let delegations: &[Value] = exported["app_state"]["staking"]["delegations"]
+    let delegations: &[Value] = stacked_get!(exported["app_state"]["staking"]["delegations"])
         .as_array()
-        .unwrap();
+        .stack()?;
 
     let mut allocations = BTreeMap::<String, u128>::new();
     for delegation in delegations {
-        let address = &delegation["delegator_address"];
+        let address = stacked_get!(delegation["delegator_address"]);
         let address = address.as_str().unwrap();
         if module_accounts.contains(address) {
             // there shouldn't be any modules delegating to anyone
             panic!();
             //continue
         }
-        let shares = &delegation["shares"];
+        let shares = stacked_get!(delegation["shares"]);
         let shares = shares.as_str().unwrap();
         // the shares can be fractional, truncate at the decimal point
         let i = shares.find('.').unwrap();
@@ -84,7 +84,11 @@ async fn main() -> Result<()> {
         let shares = U256::from_dec_or_hex_str(shares).unwrap();
 
         let total = validators
-            .get(delegation["validator_address"].as_str().unwrap())
+            .get(
+                stacked_get!(delegation["validator_address"])
+                    .as_str()
+                    .stack()?,
+            )
             .unwrap();
 
         // delegated tokens = (shares * total_tokens) / total_shares
@@ -105,9 +109,9 @@ async fn main() -> Result<()> {
 
     for (address, allocation) in allocations {
         let allocation = allocation.to_string();
-        genesis["app_state"]["auth"]["accounts"]
+        stacked_get_mut!(genesis["app_state"]["auth"]["accounts"])
             .as_array_mut()
-            .unwrap()
+            .stack()?
             .push(json!(
                 {
                     "@type": "/cosmos.auth.v1beta1.BaseAccount",
@@ -117,9 +121,9 @@ async fn main() -> Result<()> {
                     "sequence": "0"
                 }
             ));
-        genesis["app_state"]["bank"]["balances"]
+        stacked_get_mut!(genesis["app_state"]["bank"]["balances"])
             .as_array_mut()
-            .unwrap()
+            .stack()?
             .push(json!(
                 {
                 "address": address,

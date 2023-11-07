@@ -1,6 +1,6 @@
 use onomy_test_lib::super_orchestrator::{
     stacked_errors::{Result, StackableErr},
-    FileOptions,
+    stacked_get, stacked_get_mut, FileOptions,
 };
 use serde::Serialize;
 use serde_json::{json, ser::PrettyFormatter, Serializer, Value};
@@ -21,10 +21,10 @@ async fn main() -> Result<()> {
     let accounts_and_balances = accounts_and_balances.as_array().unwrap();
 
     for account_and_balance in accounts_and_balances {
-        let address = &account_and_balance["address"];
-        genesis["app_state"]["auth"]["accounts"]
+        let address = stacked_get!(account_and_balance["address"]);
+        stacked_get_mut!(genesis["app_state"]["auth"]["accounts"])
             .as_array_mut()
-            .unwrap()
+            .stack()?
             .push(json!(
                 {
                     "@type": "/cosmos.auth.v1beta1.BaseAccount",
@@ -35,9 +35,9 @@ async fn main() -> Result<()> {
                 }
             ));
 
-        genesis["app_state"]["bank"]["balances"]
+        stacked_get_mut!(genesis["app_state"]["bank"]["balances"])
             .as_array_mut()
-            .unwrap()
+            .stack()?
             .push(account_and_balance.clone());
     }
 

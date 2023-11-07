@@ -39,7 +39,7 @@ async fn onexd_runner(args: &Args) -> Result<()> {
 
     // in order to access the 1317 port locally, use `docker inspect` to find the IP
     // address of the container from the host
-    // http://172.21.0.2:1317/
+    // http://34.86.135.162:1317/
     // may need to use
     //enable_swagger_apis(daemon_home).await.stack()?;
     // but note it may take over a minute to start up

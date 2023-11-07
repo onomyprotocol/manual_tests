@@ -7,7 +7,7 @@ use onomy_test_lib::{
     onomy_std_init,
     super_orchestrator::{
         stacked_errors::{Error, Result, StackableErr},
-        FileOptions,
+        stacked_get, stacked_get_mut, FileOptions,
     },
     yaml_str_to_json_value, Args,
 };
@@ -51,13 +51,13 @@ async fn onexd_runner(_args: &Args) -> Result<()> {
 
     let mut accounts_and_balances: Value = Value::Array(vec![]);
 
-    let accounts: &[Value] = accounts["accounts"].as_array().unwrap();
+    let accounts: &[Value] = stacked_get!(accounts["accounts"]).as_array().stack()?;
     let mut i = 0;
     for account in accounts {
         if i % 100 == 0 {
             info!("reached account {i}");
         }
-        let address = &account["address"];
+        let address = stacked_get!(account["address"]);
         if let Some(address) = address.as_str() {
             if module_accounts.contains(address) {
                 continue
@@ -66,21 +66,9 @@ async fn onexd_runner(_args: &Args) -> Result<()> {
                 .await
                 .stack()?;
             let mut balances = yaml_str_to_json_value(&balances).stack()?;
-            let balances = balances["balances"].take();
+            let balances = stacked_get_mut!(balances["balances"]).take();
 
-            // set stake to normal levels
-            /*if let Some(array) = balances.as_array_mut() {
-                for item in array {
-                    if let Some(denom) = item.get("denom") {
-                        if denom.as_str().unwrap() == "stake" {
-                            let
-                            *item.get_mut("amount").unwrap() = "10000000000000000000".into();
-                        }
-                    }
-                }
-            }*/
-
-            accounts_and_balances.as_array_mut().unwrap().push(json!(
+            accounts_and_balances.as_array_mut().stack()?.push(json!(
                 {
                     "address": address,
                     "coins": balances,

@@ -3,8 +3,8 @@ use onomy_test_lib::{
     cosmovisor::sh_cosmovisor,
     onomy_std_init,
     super_orchestrator::{
-        stacked_errors::{Error, Result, StackableErr},
-        FileOptions,
+        stacked_errors::{ensure_eq, Error, Result, StackableErr},
+        stacked_get, stacked_get_mut, FileOptions,
     },
     yaml_str_to_json_value, Args,
 };
@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
         .await
         .stack()?;
         let state: Value = serde_json::from_str(&state_s).stack()?;
-        genesis["app_state"]["ccvconsumer"] = state.clone();
+        *stacked_get_mut!(genesis["app_state"]["ccvconsumer"]) = state.clone();
 
         let mut genesis_s = vec![];
         let formatter = PrettyFormatter::with_indent(&[b' ', b' ']);
@@ -61,9 +61,7 @@ async fn onomyd_runner(_args: &Args) -> Result<()> {
     //let daemon_home = args.daemon_home.as_ref().stack()?;
 
     let proposal: Value = serde_json::from_str(PROPOSAL).stack()?;
-    if proposal["chain_id"].as_str().stack()? != CONSUMER_CHAIN_ID {
-        panic!();
-    }
+    ensure_eq!(stacked_get!(proposal["chain_id"]), CONSUMER_CHAIN_ID);
 
     sh_cosmovisor("config node", &[ONOMY_NODE]).await.stack()?;
     sh_cosmovisor("config chain-id", &[ONOMY_CHAIN_ID])
@@ -77,9 +75,11 @@ async fn onomyd_runner(_args: &Args) -> Result<()> {
 
     // fix missing fields TODO when we update canonical versions we should be able
     // to remove this
-    state["params"]["soft_opt_out_threshold"] = "0.0".into();
-    state["params"]["provider_reward_denoms"] = proposal["provider_reward_denoms"].clone();
-    state["params"]["reward_denoms"] = proposal["reward_denoms"].clone();
+    stacked_get_mut!(state["params"])["soft_opt_out_threshold"] = "0.0".into();
+    stacked_get_mut!(state["params"])["provider_reward_denoms"] =
+        stacked_get!(proposal["provider_reward_denoms"]).clone();
+    stacked_get_mut!(state["params"])["reward_denoms"] =
+        stacked_get!(proposal["reward_denoms"]).clone();
 
     let mut state_s = vec![];
     let formatter = PrettyFormatter::with_indent(&[b' ', b' ']);

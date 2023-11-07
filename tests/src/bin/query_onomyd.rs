@@ -34,6 +34,8 @@ async fn main() -> Result<()> {
 
 async fn onomyd_runner(args: &Args) -> Result<()> {
     // http://34.145.158.212:26657/validators?
+    // http://34.145.158.212:1317/
+
     let daemon_home = args.daemon_home.as_ref().stack()?;
 
     sh_cosmovisor("config node", &[NODE]).await.stack()?;
