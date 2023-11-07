@@ -14,13 +14,13 @@ use tokio::io::AsyncReadExt;
 const FILE: &str = include_str!("./../../../../environments/testnet/onex-testnet-3/genesis.json");
 
 async fn get_hash(bytes: &[u8]) -> Result<()> {
-    let comres = Command::new("openssl dgst -binary -sha256", &[])
+    let comres = Command::new("openssl dgst -binary -sha256")
         .debug(true)
         .run_with_input_to_completion(bytes)
         .await
         .stack()?;
     comres.assert_success().stack()?;
-    let comres = Command::new("openssl base64 -A", &[])
+    let comres = Command::new("openssl base64 -A")
         .debug(true)
         .run_with_input_to_completion(&comres.stdout)
         .await

@@ -51,10 +51,9 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    let comres = Command::new(
-        &format!("{daemon_home}/cosmovisor/current/bin/onomyd keys add validator --recover"),
-        &[],
-    )
+    let comres = Command::new(format!(
+        "{daemon_home}/cosmovisor/current/bin/onomyd keys add validator --recover"
+    ))
     .run_with_input_to_completion(MNEMONIC.as_bytes())
     .await
     .stack()?;

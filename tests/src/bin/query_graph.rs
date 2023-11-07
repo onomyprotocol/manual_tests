@@ -27,7 +27,8 @@ use tokio::time::sleep;
 // for the full node that indexes for firehose
 
 // Pass `--peer-info ...` to select the peer for the firehose node to use.
-// It should look like "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.135.162:26656"
+// It should look like
+// "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.135.162:26656"
 
 // when running for the first time or after `/resources/query_graph` has been
 // cleaned, pass `--first-time` which will properly initialize it
@@ -279,17 +280,16 @@ async fn test_runner(args: &Args) -> Result<()> {
     let ipfs_log = FileOptions::write2("/logs", "ipfs.log");
     let graph_log = FileOptions::write2("/logs", "graph.log");
 
-    let mut ipfs_runner = Command::new("ipfs daemon", &[])
+    let mut ipfs_runner = Command::new("ipfs daemon")
         .log(Some(ipfs_log))
         .run()
         .await
         .stack()?;
 
     async fn postgres_health(uuid: &str) -> Result<()> {
-        let comres = Command::new(
-            &format!("psql --host=postgres_{uuid} -U postgres --command=\\l"),
-            &[],
-        )
+        let comres = Command::new(format!(
+            "psql --host=postgres_{uuid} -U postgres --command=\\l"
+        ))
         .env("PGPASSWORD", "root")
         .run_to_completion()
         .await
@@ -348,7 +348,6 @@ async fn test_runner(args: &Args) -> Result<()> {
     let mut firecosmos_runner = Command::new(
         "firecosmos start --config /firehose/firehose.yml --data-dir /firehose/fh-data \
          --firehose-grpc-listen-addr 0.0.0.0:9030",
-        &[],
     )
     .stderr_log(Some(firehose_err_log))
     .stdout_log(Some(firehose_std_log))
@@ -362,7 +361,7 @@ async fn test_runner(args: &Args) -> Result<()> {
     //sleep(Duration::from_secs(9999)).await;
 
     async fn firecosmos_health() -> Result<()> {
-        let comres = Command::new("curl -sL -w 200 http://localhost:9030 -o /dev/null", &[])
+        let comres = Command::new("curl -sL -w 200 http://localhost:9030 -o /dev/null")
             .run_to_completion()
             .await
             .stack()?;
@@ -377,13 +376,10 @@ async fn test_runner(args: &Args) -> Result<()> {
         .stack()?;
     info!("firehose is up");
 
-    let mut graph_runner = Command::new(
-        &format!(
-            "cargo run --release -p graph-node -- --config {GRAPH_NODE_CONFIG_PATH} --ipfs \
-             127.0.0.1:5001 --node-id index_node_cosmos_1"
-        ),
-        &[],
-    )
+    let mut graph_runner = Command::new(format!(
+        "cargo run --release -p graph-node -- --config {GRAPH_NODE_CONFIG_PATH} --ipfs \
+         127.0.0.1:5001 --node-id index_node_cosmos_1"
+    ))
     .cwd("/graph-node")
     .log(Some(graph_log))
     .run()
@@ -391,7 +387,7 @@ async fn test_runner(args: &Args) -> Result<()> {
     .stack()?;
 
     async fn graph_node_health() -> Result<()> {
-        let comres = Command::new("curl -sL -w 200 http://localhost:8020 -o /dev/null", &[])
+        let comres = Command::new("curl -sL -w 200 http://localhost:8020 -o /dev/null")
             .run_to_completion()
             .await
             .stack()?;
@@ -403,7 +399,7 @@ async fn test_runner(args: &Args) -> Result<()> {
         .stack()?;
     info!("graph-node is up");
 
-    let comres = Command::new("npm run create-local", &[])
+    let comres = Command::new("npm run create-local")
         .cwd("/mgraph")
         .debug(true)
         .run_to_completion()
@@ -412,8 +408,7 @@ async fn test_runner(args: &Args) -> Result<()> {
     comres.assert_success().stack()?;
     let comres = Command::new(
         "graph deploy --version-label v0.0.0 --node http://localhost:8020/ \
-            --ipfs http://localhost:5001 onomyprotocol/mgraph",
-        &[],
+            --ipfs http://localhost:5001 onomyprotocol/mgraph"
     )
     .cwd("/mgraph")
     .debug(true)
