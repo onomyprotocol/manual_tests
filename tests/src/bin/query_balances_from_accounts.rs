@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use common::{container_runner, dockerfile_onexd, MODULE_ACCOUNTS};
 use log::info;
 use onomy_test_lib::{
-    cosmovisor::{sh_cosmovisor, sh_cosmovisor_no_dbg},
+    cosmovisor::{sh_cosmovisor, sh_cosmovisor_no_debug},
     onomy_std_init,
     super_orchestrator::{
         stacked_errors::{Error, Result, StackableErr},
@@ -62,7 +62,7 @@ async fn onexd_runner(_args: &Args) -> Result<()> {
             if module_accounts.contains(address) {
                 continue
             }
-            let balances = sh_cosmovisor_no_dbg("query bank balances", &[address])
+            let balances = sh_cosmovisor_no_debug("query bank balances", &[address])
                 .await
                 .stack()?;
             let mut balances = yaml_str_to_json_value(&balances).stack()?;

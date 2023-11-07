@@ -1,6 +1,6 @@
 use common::{container_runner, dockerfile_onexd};
 use onomy_test_lib::{
-    cosmovisor::{sh_cosmovisor, sh_cosmovisor_no_dbg},
+    cosmovisor::{sh_cosmovisor, sh_cosmovisor_no_debug},
     onomy_std_init,
     super_orchestrator::{
         stacked_errors::{Error, Result, StackableErr},
@@ -36,7 +36,7 @@ async fn onexd_runner(_args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    let accounts = sh_cosmovisor_no_dbg("query auth accounts --limit 10000", &[])
+    let accounts = sh_cosmovisor_no_debug("query auth accounts --limit 10000", &[])
         .await
         .stack()?;
 

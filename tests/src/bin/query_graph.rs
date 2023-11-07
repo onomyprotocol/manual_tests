@@ -6,7 +6,7 @@ use clap::Parser;
 use common::{DOWNLOAD_ONEXD, ONEXD_FH_VERSION};
 use log::info;
 use onomy_test_lib::{
-    cosmovisor::{set_persistent_peers, set_pruning, sh_cosmovisor, sh_cosmovisor_no_dbg},
+    cosmovisor::{set_persistent_peers, set_pruning, sh_cosmovisor, sh_cosmovisor_no_debug},
     dockerfiles::{COSMOVISOR, ONOMY_STD},
     onomy_std_init,
     super_orchestrator::{
@@ -308,7 +308,7 @@ async fn test_runner(args: &Args) -> Result<()> {
         sh_cosmovisor("config keyring-backend test --home /firehose", &[])
             .await
             .stack()?;
-        sh_cosmovisor_no_dbg("init --overwrite --home /firehose", &[CHAIN_ID])
+        sh_cosmovisor_no_debug("init --overwrite --home /firehose", &[CHAIN_ID])
             .await
             .stack()?;
         // turn off pruning
