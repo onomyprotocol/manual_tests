@@ -70,10 +70,9 @@ async fn main() -> Result<()> {
 async fn runner(args: &Args) -> Result<()> {
     let daemon_home = &args.daemon_home.clone().stack()?;
 
-    sh(
-        &format!("cp {daemon_home}/cosmovisor/current/bin/onexd /logs/onexd"),
-        &[],
-    )
+    sh([format!(
+        "cp {daemon_home}/cosmovisor/current/bin/onexd /logs/onexd"
+    )])
     .await
     .stack()?;
 

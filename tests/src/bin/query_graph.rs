@@ -174,7 +174,8 @@ async fn container_runner(args: &Args) -> Result<()> {
     let container_target = "x86_64-unknown-linux-gnu";
 
     // build internal runner with `--release`
-    sh("cargo build --release --bin", &[
+    sh([
+        "cargo build --release --bin",
         bin_entrypoint,
         "--target",
         container_target,
@@ -196,15 +197,13 @@ async fn container_runner(args: &Args) -> Result<()> {
         .await
         .is_err()
     {
-        sh("mkdir ./tests/resources/query_graph", &[])
-            .await
-            .stack()?;
+        sh(["mkdir ./tests/resources/query_graph"]).await.stack()?;
     }
     if acquire_dir_path("./tests/resources/query_graph/postgres-data")
         .await
         .is_err()
     {
-        sh("mkdir ./tests/resources/query_graph/postgres-data", &[])
+        sh(["mkdir ./tests/resources/query_graph/postgres-data"])
             .await
             .stack()?;
     }
