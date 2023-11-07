@@ -23,15 +23,11 @@ use tokio::time::sleep;
 // NOTE: this binary persists cosmos, firehose, and postgres data in
 // .../resources/query_graph.
 
-// NOTE: you may need to turn off pruning or change the
-// `common-first-streamable-block` flag, and may need to uncomment a sleep line
-// to not timeout before syncing is complete
-
 // we use a normal onexd for the validator full node, but use the `-fh` version
 // for the full node that indexes for firehose
 
-// Pass `--peer-info ...` to select the peer for the firehose node to
-// use, otherwise it will change to `DEFAULT_PEER_INFO` on every run.
+// Pass `--peer-info ...` to select the peer for the firehose node to use.
+// It should look like "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.135.162:26656"
 
 // when running for the first time or after `/resources/query_graph` has been
 // cleaned, pass `--first-time` which will properly initialize it
@@ -43,8 +39,11 @@ use tokio::time::sleep;
 
 // the 8000 port is exposed
 
+// NOTE: you may need to turn off pruning or change the
+// `common-first-streamable-block` flag, and may need to uncomment a sleep line
+// to not timeout before syncing is complete
+
 const DEFAULT_GENESIS_PATH: &str = "./../environments/testnet/onex-testnet-3/genesis.json";
-const DEFAULT_PEER_INFO: &str = "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.135.162:26656";
 const CHAIN_ID: &str = "onex-testnet-3";
 const BINARY_NAME: &str = "onexd";
 const BINARY_DIR: &str = ".onomy_onex";
@@ -130,7 +129,8 @@ RUN cd /tmp && tar -xf /tmp/kubo.tar.gz && mv /tmp/kubo/ipfs /usr/bin/ipfs
 RUN ipfs init
 
 # our subgraph
-RUN git clone https://github.com/onomyprotocol/mgraph
+RUN git clone --branch main https://github.com/onomyprotocol/mgraph
+RUN cd /mgraph && git checkout 3e40b4731725e4210a23ebbba688a087b52360d6
 #ADD ./dockerfile_resources/mgraph /mgraph
 RUN cd /mgraph && npm install && npm run build
 
@@ -333,9 +333,8 @@ async fn test_runner(args: &Args) -> Result<()> {
     // overwrite these every time
     set_persistent_peers("/firehose", &[args
         .peer_info
-        .as_deref()
-        .unwrap_or(DEFAULT_PEER_INFO)
-        .to_owned()])
+        .clone()
+        .stack_err(|| "you need to set --peer-info")?])
     .await
     .stack()?;
     FileOptions::write_str(GRAPH_NODE_CONFIG_PATH, GRAPH_NODE_CONFIG)
