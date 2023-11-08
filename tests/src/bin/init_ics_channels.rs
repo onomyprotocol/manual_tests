@@ -56,7 +56,9 @@ async fn container_runner(args: &Args) -> Result<()> {
             "hermes",
             Dockerfile::contents(dockerfile_hermes("__tmp_hermes_config.toml")),
         )
-        .entrypoint(entrypoint, ["--entry-name", "hermes"])],
+        .external_entrypoint(entrypoint, ["--entry-name", "hermes"])
+        .await
+        .stack()?],
         Some(dockerfiles_dir),
         true,
         logs_dir,

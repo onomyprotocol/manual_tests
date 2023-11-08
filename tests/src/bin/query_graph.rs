@@ -229,7 +229,9 @@ async fn container_runner(args: &Args) -> Result<()> {
     let containers =
         vec![
             Container::new("test_runner", Dockerfile::contents(standalone_dockerfile()))
-                .entrypoint(entrypoint, test_runner_args)
+                .external_entrypoint(entrypoint, test_runner_args)
+                .await
+                .stack()?
                 // note that trying to add a ./tests/resources/ volume in addition to this will bork
                 // the docker volume locally
                 .volume("./tests/resources/query_graph", "/firehose")

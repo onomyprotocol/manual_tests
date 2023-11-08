@@ -58,10 +58,13 @@ pub async fn container_runner(args: &Args) -> Result<()> {
     let mut cn = ContainerNetwork::new(
         "test",
         vec![
-            Container::new("onexd", Dockerfile::Contents(dockerfile_onexd())).entrypoint(
-                format!("./target/{container_target}/release/{bin_entrypoint}"),
-                ["--entry-name", "onexd"],
-            ),
+            Container::new("onexd", Dockerfile::Contents(dockerfile_onexd()))
+                .external_entrypoint(
+                    format!("./target/{container_target}/release/{bin_entrypoint}"),
+                    ["--entry-name", "onexd"],
+                )
+                .await
+                .stack()?,
         ],
         Some(dockerfiles_dir),
         true,
