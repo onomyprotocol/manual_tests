@@ -48,27 +48,23 @@ async fn container_runner(args: &Args) -> Result<()> {
     .await
     .stack()?;
 
-    let entrypoint = Some(format!(
-        "./target/{container_target}/release/{bin_entrypoint}"
-    ));
-    let entrypoint = entrypoint.as_deref();
+    let entrypoint = &format!("./target/{container_target}/release/{bin_entrypoint}");
 
     let mut cn = ContainerNetwork::new(
         "test",
         vec![Container::new(
             "hermes",
-            Dockerfile::Contents(dockerfile_hermes("__tmp_hermes_config.toml")),
-            entrypoint,
-            &["--entry-name", "hermes"],
-        )],
+            Dockerfile::contents(dockerfile_hermes("__tmp_hermes_config.toml")),
+        )
+        .entrypoint(entrypoint, ["--entry-name", "hermes"])],
         Some(dockerfiles_dir),
         true,
         logs_dir,
     )
     .stack()?;
-    cn.add_common_volumes(&[(logs_dir, "/logs")]);
+    cn.add_common_volumes([(logs_dir, "/logs")]);
     let uuid = cn.uuid_as_string();
-    cn.add_common_entrypoint_args(&["--uuid", &uuid]);
+    cn.add_common_entrypoint_args(["--uuid", &uuid]);
 
     let onex_hermes = HermesChainConfig::new(
         CONSUMER_CHAIN_ID,
@@ -109,21 +105,14 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    sh_hermes(
-        &format!(
-            "keys add --chain {ONOMY_CHAIN_ID} --mnemonic-file /root/.hermes/dealer_mnemonic.txt"
-        ),
-        &[],
-    )
+    sh_hermes([format!(
+        "keys add --chain {ONOMY_CHAIN_ID} --mnemonic-file /root/.hermes/dealer_mnemonic.txt"
+    )])
     .await
     .stack()?;
-    sh_hermes(
-        &format!(
-            "keys add --chain {CONSUMER_CHAIN_ID} --mnemonic-file \
-             /root/.hermes/dealer_mnemonic.txt"
-        ),
-        &[],
-    )
+    sh_hermes([format!(
+        "keys add --chain {CONSUMER_CHAIN_ID} --mnemonic-file /root/.hermes/dealer_mnemonic.txt"
+    )])
     .await
     .stack()?;
 
@@ -165,14 +154,11 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
 
     /*
     let provider_connection = "connection-14";
-    sh_hermes(
-        &format!(
-            "tx chan-open-try --dst-chain {provider} --src-chain {consumer} --dst-connection \
-             {provider_connection} --dst-port transfer --src-port transfer --src-channel \
-             {consumer_channel}"
-        ),
-        &[],
-    )
+    sh_hermes([format!(
+        "tx chan-open-try --dst-chain {provider} --src-chain {consumer} --dst-connection \
+         {provider_connection} --dst-port transfer --src-port transfer --src-channel \
+         {consumer_channel}"
+    )])
     .await
     .stack()?;
     */
@@ -181,25 +167,19 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
     // get this from the above op
     let provider_channel = "channel-8";
 
-    sh_hermes(
-        &format!(
-            "tx chan-open-ack --dst-chain {consumer} --src-chain {provider} --dst-connection \
-             {consumer_connection} --dst-port transfer --src-port transfer --dst-channel \
-             {consumer_channel} --src-channel {provider_channel}"
-        ),
-        &[],
-    )
+    sh_hermes([format!(
+        "tx chan-open-ack --dst-chain {consumer} --src-chain {provider} --dst-connection \
+         {consumer_connection} --dst-port transfer --src-port transfer --dst-channel \
+         {consumer_channel} --src-channel {provider_channel}"
+    )])
     .await
     .stack()?;
 
-    sh_hermes(
-        &format!(
-            "tx chan-open-confirm --dst-chain {provider} --src-chain {consumer} --dst-connection \
-             {provider_connection} --dst-port transfer --src-port transfer --dst-channel \
-             {provider_channel} --src-channel {consumer_channel}"
-        ),
-        &[],
-    )
+    sh_hermes([format!(
+        "tx chan-open-confirm --dst-chain {provider} --src-chain {consumer} --dst-connection \
+         {provider_connection} --dst-port transfer --src-port transfer --dst-channel \
+         {provider_channel} --src-channel {consumer_channel}"
+    )])
     .await
     .stack()?;
     */

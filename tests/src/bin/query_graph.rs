@@ -183,10 +183,7 @@ async fn container_runner(args: &Args) -> Result<()> {
     .await
     .stack()?;
 
-    let entrypoint = Some(format!(
-        "./target/{container_target}/release/{bin_entrypoint}"
-    ));
-    let entrypoint = entrypoint.as_deref();
+    let entrypoint = format!("./target/{container_target}/release/{bin_entrypoint}");
 
     // we can't put these in source control with the .gitignore trick,
     // because postgres doesn't like it
@@ -229,40 +226,34 @@ async fn container_runner(args: &Args) -> Result<()> {
 
     // we use a normal onexd for the validator full node, but use the `-fh` version
     // for the full node that indexes for firehose
-    let containers = vec![Container::new(
-        "test_runner",
-        Dockerfile::Contents(standalone_dockerfile()),
-        entrypoint,
-        &test_runner_args,
-    )
-    // note that trying to add a ./tests/resources/ volume in addition to this will bork the docker
-    // volume locally
-    .volumes(&[("./tests/resources/query_graph", "/firehose")])
-    .create_args(&["-p", "8000:8000"])];
+    let containers =
+        vec![
+            Container::new("test_runner", Dockerfile::contents(standalone_dockerfile()))
+                .entrypoint(entrypoint, test_runner_args)
+                // note that trying to add a ./tests/resources/ volume in addition to this will bork
+                // the docker volume locally
+                .volume("./tests/resources/query_graph", "/firehose")
+                .create_args(["-p", "8000:8000"]),
+        ];
 
     let mut cn =
         ContainerNetwork::new("test", containers, Some(dockerfiles_dir), true, logs_dir).stack()?;
-    cn.add_common_volumes(&[(logs_dir, "/logs")]);
+    cn.add_common_volumes([(logs_dir, "/logs")]);
     let uuid = cn.uuid_as_string();
-    cn.add_common_entrypoint_args(&["--uuid", &uuid]);
+    cn.add_common_entrypoint_args(["--uuid", &uuid]);
     cn.add_container(
-        Container::new(
-            "postgres",
-            Dockerfile::NameTag("postgres:16".to_owned()),
-            None,
-            &[],
-        )
-        .volumes(&[(
-            "./tests/resources/query_graph/postgres-data",
-            "/var/lib/postgresql/data",
-        )])
-        .environment_vars(&[
-            ("POSTGRES_PASSWORD", "root"),
-            ("POSTGRES_USER", "postgres"),
-            ("POSTGRES_DB", "graph-node"),
-            ("POSTGRES_INITDB_ARGS", "-E UTF8 --locale=C"),
-        ])
-        .no_uuid_for_host_name(),
+        Container::new("postgres", Dockerfile::name_tag("postgres:16"))
+            .volume(
+                "./tests/resources/query_graph/postgres-data",
+                "/var/lib/postgresql/data",
+            )
+            .environment_vars([
+                ("POSTGRES_PASSWORD", "root"),
+                ("POSTGRES_USER", "postgres"),
+                ("POSTGRES_DB", "graph-node"),
+                ("POSTGRES_INITDB_ARGS", "-E UTF8 --locale=C"),
+            ])
+            .no_uuid_for_host_name(),
     )
     .stack()?;
 

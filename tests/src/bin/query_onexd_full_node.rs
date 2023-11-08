@@ -57,22 +57,20 @@ pub async fn container_runner(args: &Args) -> Result<()> {
 
     let mut cn = ContainerNetwork::new(
         "test",
-        vec![Container::new(
-            "onexd",
-            Dockerfile::Contents(dockerfile_onexd()),
-            Some(&format!(
-                "./target/{container_target}/release/{bin_entrypoint}"
-            )),
-            &["--entry-name", "onexd"],
-        )],
+        vec![
+            Container::new("onexd", Dockerfile::Contents(dockerfile_onexd())).entrypoint(
+                format!("./target/{container_target}/release/{bin_entrypoint}"),
+                ["--entry-name", "onexd"],
+            ),
+        ],
         Some(dockerfiles_dir),
         true,
         logs_dir,
     )
     .stack()?;
-    cn.add_common_volumes(&[(logs_dir, "/logs"), (resources_dir, "/resources")]);
+    cn.add_common_volumes([(logs_dir, "/logs"), (resources_dir, "/resources")]);
     let uuid = cn.uuid_as_string();
-    cn.add_common_entrypoint_args(&["--uuid", &uuid]);
+    cn.add_common_entrypoint_args(["--uuid", &uuid]);
     cn.run_all(true).await.stack()?;
     cn.wait_with_timeout_all(true, TIMEOUT).await.stack()?;
     cn.terminate_all().await;
