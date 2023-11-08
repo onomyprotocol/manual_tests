@@ -38,16 +38,14 @@ async fn onomyd_runner(args: &Args) -> Result<()> {
 
     let daemon_home = args.daemon_home.as_ref().stack()?;
 
-    sh_cosmovisor("config node", &[NODE]).await.stack()?;
-    sh_cosmovisor("config chain-id", &[CHAIN_ID])
-        .await
-        .stack()?;
-    sh_cosmovisor("config keyring-backend test", &[])
+    sh_cosmovisor(["config node", NODE]).await.stack()?;
+    sh_cosmovisor(["config chain-id", CHAIN_ID]).await.stack()?;
+    sh_cosmovisor(["config keyring-backend test"])
         .await
         .stack()?;
 
-    sh_cosmovisor("query block", &[]).await.stack()?;
-    sh_cosmovisor("query slashing signing-infos", &[])
+    sh_cosmovisor(["query block"]).await.stack()?;
+    sh_cosmovisor(["query slashing signing-infos"])
         .await
         .stack()?;
 

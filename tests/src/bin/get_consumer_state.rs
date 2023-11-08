@@ -63,12 +63,12 @@ async fn onomyd_runner(_args: &Args) -> Result<()> {
     let proposal: Value = serde_json::from_str(PROPOSAL).stack()?;
     ensure_eq!(stacked_get!(proposal["chain_id"]), CONSUMER_CHAIN_ID);
 
-    sh_cosmovisor("config node", &[ONOMY_NODE]).await.stack()?;
-    sh_cosmovisor("config chain-id", &[ONOMY_CHAIN_ID])
+    sh_cosmovisor(["config node", ONOMY_NODE]).await.stack()?;
+    sh_cosmovisor(["config chain-id", ONOMY_CHAIN_ID])
         .await
         .stack()?;
 
-    let ccvconsumer_state = sh_cosmovisor("query provider consumer-genesis", &[CONSUMER_CHAIN_ID])
+    let ccvconsumer_state = sh_cosmovisor(["query provider consumer-genesis", CONSUMER_CHAIN_ID])
         .await
         .stack()?;
     let mut state = yaml_str_to_json_value(&ccvconsumer_state).stack()?;

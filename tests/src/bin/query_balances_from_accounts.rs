@@ -35,10 +35,8 @@ async fn main() -> Result<()> {
 async fn onexd_runner(_args: &Args) -> Result<()> {
     //let daemon_home = args.daemon_home.as_ref().stack()?;
 
-    sh_cosmovisor("config node", &[NODE]).await.stack()?;
-    sh_cosmovisor("config chain-id", &[CHAIN_ID])
-        .await
-        .stack()?;
+    sh_cosmovisor(["config node", NODE]).await.stack()?;
+    sh_cosmovisor(["config chain-id", CHAIN_ID]).await.stack()?;
 
     let accounts_s = FileOptions::read_to_string("/resources/query_accounts.json")
         .await
@@ -62,7 +60,7 @@ async fn onexd_runner(_args: &Args) -> Result<()> {
             if module_accounts.contains(address) {
                 continue
             }
-            let balances = sh_cosmovisor_no_debug("query bank balances", &[address])
+            let balances = sh_cosmovisor_no_debug(["query bank balances", address])
                 .await
                 .stack()?;
             let mut balances = yaml_str_to_json_value(&balances).stack()?;

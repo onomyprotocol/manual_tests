@@ -31,12 +31,10 @@ async fn main() -> Result<()> {
 async fn onexd_runner(_args: &Args) -> Result<()> {
     //let daemon_home = args.daemon_home.as_ref().stack()?;
 
-    sh_cosmovisor("config node", &[NODE]).await.stack()?;
-    sh_cosmovisor("config chain-id", &[CHAIN_ID])
-        .await
-        .stack()?;
+    sh_cosmovisor(["config node", NODE]).await.stack()?;
+    sh_cosmovisor(["config chain-id", CHAIN_ID]).await.stack()?;
 
-    let accounts = sh_cosmovisor_no_debug("query auth accounts --limit 10000", &[])
+    let accounts = sh_cosmovisor_no_debug(["query auth accounts --limit 10000"])
         .await
         .stack()?;
 

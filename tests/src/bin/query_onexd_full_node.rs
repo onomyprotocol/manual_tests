@@ -84,10 +84,8 @@ async fn onexd_runner(args: &Args) -> Result<()> {
     let daemon_home = args.daemon_home.clone().stack()?;
 
     //sh_cosmovisor("config node", &[NODE]).await.stack()?;
-    sh_cosmovisor("config chain-id", &[CHAIN_ID])
-        .await
-        .stack()?;
-    sh_cosmovisor("config keyring-backend test", &[])
+    sh_cosmovisor(["config chain-id", CHAIN_ID]).await.stack()?;
+    sh_cosmovisor(["config keyring-backend test"])
         .await
         .stack()?;
 
@@ -104,12 +102,12 @@ async fn onexd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    sh_cosmovisor("query block", &[]).await.stack()?;
+    sh_cosmovisor(["query block"]).await.stack()?;
     wait_for_num_blocks(1).await.stack()?;
-    sh_cosmovisor("query ccvconsumer next-fee-distribution", &[])
+    sh_cosmovisor(["query ccvconsumer next-fee-distribution"])
         .await
         .stack()?;
-    sh_cosmovisor("query slashing signing-infos", &[])
+    sh_cosmovisor(["query slashing signing-infos"])
         .await
         .stack()?;
 

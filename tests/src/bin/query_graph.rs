@@ -301,13 +301,13 @@ async fn test_runner(args: &Args) -> Result<()> {
         .stack()?;
 
     if args.first_run {
-        sh_cosmovisor("config chain-id --home /firehose", &[CHAIN_ID])
+        sh_cosmovisor(["config chain-id --home /firehose", CHAIN_ID])
             .await
             .stack()?;
-        sh_cosmovisor("config keyring-backend test --home /firehose", &[])
+        sh_cosmovisor(["config keyring-backend test --home /firehose"])
             .await
             .stack()?;
-        sh_cosmovisor_no_debug("init --overwrite --home /firehose", &[CHAIN_ID])
+        sh_cosmovisor_no_debug(["init --overwrite --home /firehose", CHAIN_ID])
             .await
             .stack()?;
         // turn off pruning
