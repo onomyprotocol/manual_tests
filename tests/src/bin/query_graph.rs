@@ -18,10 +18,12 @@ use onomy_test_lib::{
     },
     Args,
 };
-use tokio::time::sleep;
+use tokio::{fs, time::sleep};
 
 // NOTE: this binary persists cosmos, firehose, and postgres data in
-// .../resources/query_graph.
+// .../resources/query_graph. When there is some update to the graph that causes
+// issues, you may want to `sudo rm -rf` the query_graph folder and restart
+// syncing from scratch
 
 // we use a normal onexd for the validator full node, but use the `-fh` version
 // for the full node that indexes for firehose
@@ -30,9 +32,6 @@ use tokio::time::sleep;
 // It should look like
 // "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.135.162:26656"
 
-// when running for the first time or after `/resources/query_graph` has been
-// cleaned, pass `--first-time` which will properly initialize it
-// Also on `--first-time`,
 // Pass `--genesis-path ...` to select a different path to a genesis (relative
 // to the root of the repo),
 // but afterwards you may have to cd into /resource/query_graph to manually
@@ -40,19 +39,18 @@ use tokio::time::sleep;
 
 // the 8000 port is exposed
 
-// NOTE: you may need to turn off pruning or change the
-// `common-first-streamable-block` flag, and may need to uncomment a sleep line
-// to not timeout before syncing is complete
-
 const DEFAULT_GENESIS_PATH: &str = "./../environments/testnet/onex-testnet-3/genesis.json";
 const CHAIN_ID: &str = "onex-testnet-3";
 const BINARY_NAME: &str = "onexd";
 const BINARY_DIR: &str = ".onomy_onex";
 // time until the program ends after everything is deployed
 const END_TIMEOUT: Duration = Duration::from_secs(1_000_000_000);
+// limiter on log file sizes
+const LIMIT: u64 = 5 * 1024 * 1024;
 
 const FIREHOSE_CONFIG_PATH: &str = "/firehose/firehose.yml";
-const FIREHOSE_CONFIG: &str = r#"start:
+fn firehose_config() -> String {
+    r#"start:
     args:
         - reader
         - relayer
@@ -65,7 +63,9 @@ const FIREHOSE_CONFIG: &str = r#"start:
         reader-node-args: start --x-crisis-skip-assert-invariants --home=/firehose
         reader-node-logs-filter: "module=(p2p|pex|consensus|x/bank|x/market)"
         relayer-max-source-latency: 99999h
-        verbose: 1"#;
+        verbose: 1"#
+        .to_owned()
+}
 
 const CONFIG_TOML_PATH: &str = "/firehose/config/config.toml";
 const EXTRACTOR_CONFIG: &str = r#"
@@ -194,13 +194,15 @@ async fn container_runner(args: &Args) -> Result<()> {
         .await
         .is_err()
     {
-        sh(["mkdir ./tests/resources/query_graph"]).await.stack()?;
+        fs::create_dir("./tests/resources/query_graph")
+            .await
+            .stack()?;
     }
     if acquire_dir_path("./tests/resources/query_graph/postgres-data")
         .await
         .is_err()
     {
-        sh(["mkdir ./tests/resources/query_graph/postgres-data"])
+        fs::create_dir("./tests/resources/query_graph/postgres-data")
             .await
             .stack()?;
     }
@@ -293,34 +295,33 @@ async fn test_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    if args.first_run {
-        sh_cosmovisor(["config chain-id --home /firehose", CHAIN_ID])
-            .await
-            .stack()?;
-        sh_cosmovisor(["config keyring-backend test --home /firehose"])
-            .await
-            .stack()?;
-        sh_cosmovisor_no_debug(["init --overwrite --home /firehose", CHAIN_ID])
-            .await
-            .stack()?;
-        // turn off pruning
-        set_pruning("/firehose", "nothing").await.stack()?;
-        FileOptions::write_str(
-            "/firehose/config/genesis.json",
-            &FileOptions::read_to_string("/firehose/__tmp_genesis.json")
-                .await
-                .stack()?,
-        )
+    // it seems to be ok to do this on every run
+    sh_cosmovisor(["config chain-id --home /firehose", CHAIN_ID])
         .await
         .stack()?;
-        let mut config = FileOptions::read_to_string(CONFIG_TOML_PATH)
+    sh_cosmovisor(["config keyring-backend test --home /firehose"])
+        .await
+        .stack()?;
+    sh_cosmovisor_no_debug(["init --overwrite --home /firehose", CHAIN_ID])
+        .await
+        .stack()?;
+    // turn off pruning
+    set_pruning("/firehose", "nothing").await.stack()?;
+    FileOptions::write_str(
+        "/firehose/config/genesis.json",
+        &FileOptions::read_to_string("/firehose/__tmp_genesis.json")
             .await
-            .stack()?;
-        config.push_str(EXTRACTOR_CONFIG);
-        FileOptions::write_str(CONFIG_TOML_PATH, &config)
-            .await
-            .stack()?;
-    }
+            .stack()?,
+    )
+    .await
+    .stack()?;
+    let mut config = FileOptions::read_to_string(CONFIG_TOML_PATH)
+        .await
+        .stack()?;
+    config.push_str(EXTRACTOR_CONFIG);
+    FileOptions::write_str(CONFIG_TOML_PATH, &config)
+        .await
+        .stack()?;
 
     // overwrite these every time
     set_persistent_peers("/firehose", &[args
@@ -333,7 +334,7 @@ async fn test_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    FileOptions::write_str(FIREHOSE_CONFIG_PATH, FIREHOSE_CONFIG)
+    FileOptions::write_str(FIREHOSE_CONFIG_PATH, &firehose_config())
         .await
         .stack()?;
 
@@ -343,6 +344,8 @@ async fn test_runner(args: &Args) -> Result<()> {
     )
     .stderr_log(Some(firehose_err_log))
     .stdout_log(Some(firehose_std_log))
+    .recording(false)
+    .limit(Some(LIMIT))
     .run()
     .await
     .stack()?;
@@ -374,6 +377,8 @@ async fn test_runner(args: &Args) -> Result<()> {
     ))
     .cwd("/graph-node")
     .log(Some(graph_log))
+    .recording(false)
+    .limit(Some(LIMIT))
     .run()
     .await
     .stack()?;
