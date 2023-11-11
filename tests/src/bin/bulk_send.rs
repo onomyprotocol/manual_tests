@@ -52,13 +52,14 @@ async fn onexd_runner(args: &Args) -> Result<()> {
         .await
         .stack()?;
 
-    let comres = Command::new(format!(
+    Command::new(format!(
         "{daemon_home}/cosmovisor/current/bin/onexd keys add validator --recover"
     ))
     .run_with_input_to_completion(MNEMONIC.as_bytes())
     .await
+    .stack()?
+    .assert_success()
     .stack()?;
-    comres.assert_success().stack()?;
 
     // have a guard to prevent accidents
     let addr = &cosmovisor_get_addr("validator").await.stack()?;

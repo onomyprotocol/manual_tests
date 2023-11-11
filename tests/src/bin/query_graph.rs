@@ -281,14 +281,15 @@ async fn test_runner(args: &Args) -> Result<()> {
         .stack()?;
 
     async fn postgres_health(uuid: &str) -> Result<()> {
-        let comres = Command::new(format!(
+        Command::new(format!(
             "psql --host=postgres_{uuid} -U postgres --command=\\l"
         ))
         .env("PGPASSWORD", "root")
         .run_to_completion()
         .await
+        .stack()?
+        .assert_success()
         .stack()?;
-        comres.assert_success().stack()?;
         Ok(())
     }
     wait_for_ok(10, Duration::from_secs(1), || postgres_health(uuid))
@@ -356,11 +357,12 @@ async fn test_runner(args: &Args) -> Result<()> {
     //sleep(Duration::from_secs(9999)).await;
 
     async fn firecosmos_health() -> Result<()> {
-        let comres = Command::new("curl -sL -w 200 http://localhost:9030 -o /dev/null")
+        Command::new("curl -sL -w 200 http://localhost:9030 -o /dev/null")
             .run_to_completion()
             .await
+            .stack()?
+            .assert_success()
             .stack()?;
-        comres.assert_success().stack()?;
         Ok(())
     }
     info!("waiting for firehose, check logs to make sure it is syncing");
@@ -384,11 +386,12 @@ async fn test_runner(args: &Args) -> Result<()> {
     .stack()?;
 
     async fn graph_node_health() -> Result<()> {
-        let comres = Command::new("curl -sL -w 200 http://localhost:8020 -o /dev/null")
+        Command::new("curl -sL -w 200 http://localhost:8020 -o /dev/null")
             .run_to_completion()
             .await
+            .stack()?
+            .assert_success()
             .stack()?;
-        comres.assert_success().stack()?;
         Ok(())
     }
     wait_for_ok(100, Duration::from_secs(1), graph_node_health)
@@ -396,14 +399,15 @@ async fn test_runner(args: &Args) -> Result<()> {
         .stack()?;
     info!("graph-node is up");
 
-    let comres = Command::new("npm run create-local")
+    Command::new("npm run create-local")
         .cwd("/mgraph")
         .debug(true)
         .run_to_completion()
         .await
+        .stack()?
+        .assert_success()
         .stack()?;
-    comres.assert_success().stack()?;
-    let comres = Command::new(
+    Command::new(
         "graph deploy --version-label v0.0.0 --node http://localhost:8020/ \
             --ipfs http://localhost:5001 onomyprotocol/mgraph"
     )
@@ -411,8 +415,7 @@ async fn test_runner(args: &Args) -> Result<()> {
     .debug(true)
     .run_to_completion()
     .await
-    .stack()?;
-    comres.assert_success().stack()?;
+    .stack()?.assert_success().stack()?;
 
     info!("subgraph deployed");
     info!("all things deployed, check for syncing");
