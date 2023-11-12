@@ -1,3 +1,13 @@
+//! get the hash of a genesis file and a binary in the logs directory (please
+//! refactor if necessary)
+
+/*
+e.x.
+
+cargo r --bin get_hashes -- --genesis-path ./../environments/testnet/onex-testnet-3/genesis.json
+
+*/
+
 use common::{container_runner, dockerfile_onexd};
 use log::info;
 use onomy_test_lib::{
@@ -10,8 +20,6 @@ use onomy_test_lib::{
     Args,
 };
 use tokio::io::AsyncReadExt;
-
-const FILE: &str = include_str!("./../../../../environments/testnet/onex-testnet-3/genesis.json");
 
 async fn get_hash(bytes: &[u8]) -> Result<()> {
     let comres = Command::new("openssl dgst -binary -sha256")
@@ -45,7 +53,13 @@ async fn main() -> Result<()> {
             _ => Err(Error::from(format!("entry_name \"{s}\" is not recognized"))),
         }
     } else {
-        let file = FILE;
+        let file = FileOptions::read_to_string(
+            args.genesis_path
+                .as_deref()
+                .stack_err(|| "need --genesis-path")?,
+        )
+        .await
+        .stack()?;
         info!("GENESIS HASH");
         get_hash(file.as_bytes()).await.stack()?;
 

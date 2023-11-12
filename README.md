@@ -7,5 +7,4 @@ linker = "clang"
 rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/bin/mold"]
 ```
 
-To run TheGraph, run `cargo r --bin query_graph -- --peer-info ...`. See the comments in
-`tests/src/bin/query_graph.rs` for more info and options
+See all the binaries in tests/src/bin

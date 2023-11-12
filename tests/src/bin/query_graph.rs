@@ -1,3 +1,7 @@
+//! uses the firehose version of a onexd binary, syncing with the normal
+//! network, and a bunch of stuff that eventually leads to a The Graph subgraph
+//! with mgraph exposed on a 8000 port
+
 #![allow(unused)]
 
 use std::time::Duration;

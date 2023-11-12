@@ -1,3 +1,5 @@
+//! use this to test before doing `bulk_send`
+
 use std::{cmp::min, time::Duration};
 
 use common::{

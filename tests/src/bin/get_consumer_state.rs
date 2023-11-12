@@ -1,5 +1,6 @@
 //! acquires consumer state from the provider for use in completing the consumer
-//! genesis, automatically overwriting the complete genesis with the partial
+//! genesis, automatically overwriting the complete genesis (please commit in
+//! the --genesis-path directory before running) with the partial
 //! genesis contents with consumer state inserted
 
 #[rustfmt::skip]

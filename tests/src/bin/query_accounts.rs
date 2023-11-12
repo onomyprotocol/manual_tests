@@ -1,3 +1,5 @@
+//! temporary for querying accounts
+
 use common::{container_runner, dockerfile_onexd};
 use onomy_test_lib::{
     cosmovisor::{sh_cosmovisor, sh_cosmovisor_no_debug},

@@ -1,4 +1,5 @@
-//! script used for distribution from dealer account on testnet
+//! script used for distribution from dealer account on testnet. Test with
+//! `test_bulk_send` first
 
 use std::{cmp::min, time::Duration};
 

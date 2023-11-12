@@ -1,3 +1,6 @@
+//! using a file of accounts and balances, pushes them to a partial genesis with
+//! appropriate auth accounts and balances
+
 use onomy_test_lib::super_orchestrator::{
     stacked_errors::{Result, StackableErr},
     stacked_get, stacked_get_mut, FileOptions,

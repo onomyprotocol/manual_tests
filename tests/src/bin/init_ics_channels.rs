@@ -1,3 +1,20 @@
+//! script for initiating ICS channels, please selectively comment and uncomment
+//! things as needed because usually there is an error somewhere that needs to
+//! be manually stepped through or skipped.
+//!
+//! This can also just be used to run a relayer locally temporarily (note that
+//! it is relaying everything by default, may need to do some changes to
+//! hermes.rs)
+//!
+//! Look at hermes_ics_runner.log for output from the runner
+
+/*
+e.x.
+
+cargo r --bin init_ics_channels -- --mnemonic-path ./../testnet_dealer_mnemonic.txt
+
+*/
+
 use onomy_test_lib::{
     dockerfiles::dockerfile_hermes,
     hermes::{hermes_start, sh_hermes, write_hermes_config, HermesChainConfig},
@@ -16,7 +33,6 @@ const ONOMY_NODE: &str = "34.145.158.212";
 const CONSUMER_NODE: &str = "34.86.135.162";
 const ONOMY_CHAIN_ID: &str = "onomy-testnet-1";
 const CONSUMER_CHAIN_ID: &str = "onex-testnet-3";
-const DEALER_MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -48,6 +64,15 @@ async fn container_runner(args: &Args) -> Result<()> {
     .await
     .stack()?;
 
+    FileOptions::copy(
+        args.mnemonic_path
+            .as_deref()
+            .stack_err(|| "need --mnemonic")?,
+        "./tests/resources/tmp/mnemonic.txt",
+    )
+    .await
+    .stack()?;
+
     let entrypoint = &format!("./target/{container_target}/release/{bin_entrypoint}");
 
     let mut cn = ContainerNetwork::new(
@@ -64,7 +89,7 @@ async fn container_runner(args: &Args) -> Result<()> {
         logs_dir,
     )
     .stack()?;
-    cn.add_common_volumes([(logs_dir, "/logs")]);
+    cn.add_common_volumes([(logs_dir, "/logs"), ("./tests/resources/", "/resources/")]);
     let uuid = cn.uuid_as_string();
     cn.add_common_entrypoint_args(["--uuid", &uuid]);
 
@@ -100,10 +125,12 @@ async fn container_runner(args: &Args) -> Result<()> {
 }
 
 async fn hermes_runner(_args: &Args) -> Result<()> {
-    let dealer_mnemonic = DEALER_MNEMONIC;
+    let mnemonic = FileOptions::read_to_string("/resources/tmp/mnemonic.txt")
+        .await
+        .stack()?;
 
     // set keys for our chains
-    FileOptions::write_str("/root/.hermes/dealer_mnemonic.txt", dealer_mnemonic)
+    FileOptions::write_str("/root/.hermes/dealer_mnemonic.txt", &mnemonic)
         .await
         .stack()?;
 
