@@ -1,4 +1,4 @@
-// for locally cleaning up log files and other temporaries
+//! for locally cleaning up log files and other temporaries
 
 use onomy_test_lib::super_orchestrator::{remove_files_in_dir, stacked_errors::Result, std_init};
 
@@ -15,6 +15,10 @@ async fn main() -> Result<()> {
     .await?;
     remove_files_in_dir("./tests/logs", &[".log", ".json", ".toml"]).await?;
     remove_files_in_dir("./tests/resources/keyring-test/", &[".address", ".info"]).await?;
+    remove_files_in_dir("./tests/resources/tmp/", &[
+        ".log", ".json", ".toml", ".txt",
+    ])
+    .await?;
 
     Ok(())
 }

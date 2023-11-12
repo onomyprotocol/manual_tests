@@ -1,3 +1,5 @@
+//! trade war preprocessing
+
 use std::collections::{btree_map::Entry, BTreeMap};
 
 use common::{

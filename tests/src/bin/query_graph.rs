@@ -218,9 +218,6 @@ async fn container_runner(args: &Args) -> Result<()> {
 
     let mut test_runner_args = vec!["--entry-name", "test_runner"];
     // pass on these args to the test runner
-    if args.first_run {
-        test_runner_args.push("--first-run");
-    }
     if let Some(ref peer_info) = args.peer_info {
         test_runner_args.push("--peer-info");
         test_runner_args.push(peer_info);

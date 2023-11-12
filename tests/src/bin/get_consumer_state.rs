@@ -1,24 +1,33 @@
-use common::{container_runner, dockerfile_onomyd};
+//! acquires consumer state from the provider for use in completing the consumer
+//! genesis, automatically overwriting the complete genesis with the partial
+//! genesis contents with consumer state inserted
+
+#[rustfmt::skip]
+/*
+e.x.
+
+cargo r --bin get_consumer_state -- --proposal-path ./../environments/testnet/onex-testnet-3/genesis-proposal.json --partial-genesis-path ./../environments/testnet/onex-testnet-3/partial-genesis.json --genesis-path ./../environments/testnet/onex-testnet-3/genesis.json --node http://34.28.227.180:26657
+
+*/
+
+use common::dockerfile_onomyd;
 use onomy_test_lib::{
     cosmovisor::sh_cosmovisor,
     onomy_std_init,
     super_orchestrator::{
+        acquire_file_path,
+        docker::{Container, ContainerNetwork, Dockerfile},
+        sh,
         stacked_errors::{ensure_eq, Error, Result, StackableErr},
         stacked_get, stacked_get_mut, FileOptions,
     },
-    yaml_str_to_json_value, Args,
+    yaml_str_to_json_value, Args, TIMEOUT,
 };
 use serde::ser::Serialize;
 use serde_json::{ser::PrettyFormatter, Serializer, Value};
 
-const ONOMY_NODE: &str = "http://34.28.227.180:26657";
 const ONOMY_CHAIN_ID: &str = "onomy-testnet-1";
 const CONSUMER_CHAIN_ID: &str = "onex-testnet-3";
-const PROPOSAL: &str =
-    include_str!("./../../../../environments/testnet/onex-testnet-3/genesis-proposal.json");
-const PARTIAL_GENESIS: &str =
-    include_str!("./../../../../environments/testnet/onex-testnet-3/partial-genesis.json");
-const COMPLETE_GENESIS_PATH: &str = "./../environments/testnet/onex-testnet-3/genesis.json";
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -30,11 +39,76 @@ async fn main() -> Result<()> {
             _ => Err(Error::from(format!("entry_name \"{s}\" is not recognized"))),
         }
     } else {
-        let mut genesis: Value = serde_json::from_str(PARTIAL_GENESIS).stack()?;
+        let partial_genesis = FileOptions::read_to_string(
+            args.partial_genesis_path
+                .as_deref()
+                .stack_err(|| "need --partial-genesis-path")?,
+        )
+        .await
+        .stack()?;
+        let mut genesis: Value = serde_json::from_str(&partial_genesis).stack()?;
 
-        container_runner(&args, &[("onomyd", &dockerfile_onomyd())])
-            .await
-            .stack()?;
+        let complete_genesis_path = acquire_file_path(
+            args.genesis_path
+                .as_deref()
+                .stack_err(|| "need --genesis-path")?,
+        )
+        .await
+        .stack()?;
+
+        FileOptions::copy(
+            args.proposal_path
+                .as_deref()
+                .stack_err(|| "need --proposal-path")?,
+            "./tests/resources/tmp/proposal.json",
+        )
+        .await
+        .stack()?;
+
+        // read from node
+        let logs_dir = "./tests/logs";
+        let resources_dir = "./tests/resources";
+        let dockerfiles_dir = "./tests/dockerfiles";
+        let bin_entrypoint = &args.bin_name;
+        let container_target = "x86_64-unknown-linux-gnu";
+
+        // build internal runner
+        sh([
+            "cargo build --release --bin",
+            bin_entrypoint,
+            "--target",
+            container_target,
+        ])
+        .await
+        .stack()?;
+
+        let mut containers = vec![];
+        containers.push(
+            Container::new("onomyd", Dockerfile::contents(dockerfile_onomyd()))
+                .external_entrypoint(
+                    format!("./target/{container_target}/release/{bin_entrypoint}"),
+                    [
+                        "--entry-name",
+                        "onomyd",
+                        "--node",
+                        args.node.as_deref().stack_err(|| "need --node")?,
+                    ],
+                )
+                .await
+                .stack()?,
+        );
+
+        let mut cn =
+            ContainerNetwork::new("test", containers, Some(dockerfiles_dir), true, logs_dir)
+                .stack()?;
+        cn.add_common_volumes([(logs_dir, "/logs"), (resources_dir, "/resources")]);
+        let uuid = cn.uuid_as_string();
+        cn.add_common_entrypoint_args(["--uuid", &uuid]);
+        cn.run_all(true).await.stack()?;
+        cn.wait_with_timeout_all(true, TIMEOUT).await.stack()?;
+        cn.terminate_all().await;
+
+        // afterwards get the output and write the complete genesis
 
         let state_s = FileOptions::read_to_string(&format!(
             "./tests/logs/{CONSUMER_CHAIN_ID}_ccvconsumer_state.json"
@@ -49,7 +123,7 @@ async fn main() -> Result<()> {
         let mut ser = Serializer::with_formatter(&mut genesis_s, formatter);
         genesis.serialize(&mut ser).stack()?;
         let genesis_s = String::from_utf8(genesis_s).stack()?;
-        FileOptions::write_str(COMPLETE_GENESIS_PATH, &genesis_s)
+        FileOptions::write_str(complete_genesis_path, &genesis_s)
             .await
             .stack()?;
 
@@ -57,13 +131,18 @@ async fn main() -> Result<()> {
     }
 }
 
-async fn onomyd_runner(_args: &Args) -> Result<()> {
+async fn onomyd_runner(args: &Args) -> Result<()> {
     //let daemon_home = args.daemon_home.as_ref().stack()?;
 
-    let proposal: Value = serde_json::from_str(PROPOSAL).stack()?;
+    let proposal = FileOptions::read_to_string("/resources/tmp/proposal.json")
+        .await
+        .stack()?;
+    let proposal: Value = serde_json::from_str(&proposal).stack()?;
     ensure_eq!(stacked_get!(proposal["chain_id"]), CONSUMER_CHAIN_ID);
 
-    sh_cosmovisor(["config node", ONOMY_NODE]).await.stack()?;
+    sh_cosmovisor(["config node", args.node.as_deref().stack()?])
+        .await
+        .stack()?;
     sh_cosmovisor(["config chain-id", ONOMY_CHAIN_ID])
         .await
         .stack()?;

@@ -1,4 +1,4 @@
-// for temporary tests
+//! for calculations of UTC times
 
 use std::{str::FromStr, time::Duration};
 
@@ -12,10 +12,7 @@ use onomy_test_lib::super_orchestrator::{
 
 #[derive(Parser, Debug)]
 #[command(about)]
-struct Args {
-    //#[arg(short, long)]
-    //container_name: String,
-}
+struct Args {}
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -1,3 +1,5 @@
+//! script used for distribution from dealer account on testnet
+
 use std::{cmp::min, time::Duration};
 
 use common::{
@@ -22,7 +24,6 @@ use u64_array_bigints::u256;
 const NODE: &str = "http://34.86.135.162:26657";
 const NODE_GRPC: &str = "http://34.86.135.162:9090";
 const CHAIN_ID: &str = "onex-testnet-3";
-const MNEMONIC: &str = include_str!("./../../../../testnet_dealer_mnemonic.txt");
 const RECORDS_PATH: &str = "/resources/onex-trade-war-filtered.ron";
 
 #[tokio::main]
@@ -37,6 +38,15 @@ async fn main() -> Result<()> {
             _ => Err(Error::from(format!("entry_name \"{s}\" is not recognized"))),
         }
     } else {
+        FileOptions::copy(
+            args.mnemonic_path
+                .as_deref()
+                .stack_err(|| "need --mnemonic")?,
+            "./tests/resources/tmp/mnemonic.txt",
+        )
+        .await
+        .stack()?;
+
         container_runner(&args, &[("onexd", &dockerfile_onexd())])
             .await
             .stack()
@@ -45,6 +55,10 @@ async fn main() -> Result<()> {
 
 async fn onexd_runner(args: &Args) -> Result<()> {
     let daemon_home = args.daemon_home.clone().stack()?;
+
+    let mnemonic = FileOptions::read_to_string("/resources/tmp/mnemonic.txt")
+        .await
+        .stack()?;
 
     sh_cosmovisor(["config node", NODE]).await.stack()?;
     sh_cosmovisor(["config chain-id", CHAIN_ID]).await.stack()?;
@@ -55,7 +69,7 @@ async fn onexd_runner(args: &Args) -> Result<()> {
     Command::new(format!(
         "{daemon_home}/cosmovisor/current/bin/onexd keys add validator --recover"
     ))
-    .run_with_input_to_completion(MNEMONIC.as_bytes())
+    .run_with_input_to_completion(mnemonic.as_bytes())
     .await
     .stack()?
     .assert_success()
@@ -69,7 +83,7 @@ async fn onexd_runner(args: &Args) -> Result<()> {
     let contact = deep_space::Contact::new(NODE_GRPC, TIMEOUT, "onomy").stack()?;
     dbg!(contact.query_total_supply().await.stack()?);
 
-    let private_key = get_private_key(MNEMONIC).stack()?;
+    let private_key = get_private_key(&mnemonic).stack()?;
     ensure_eq!(
         &private_key
             .to_address("onomy")
