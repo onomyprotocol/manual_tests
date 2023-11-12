@@ -8,9 +8,10 @@ cargo r --bin get_hashes -- --genesis-path ./../environments/testnet/onex-testne
 
 */
 
-use common::{container_runner, dockerfile_onexd};
+use common::container_runner;
 use log::info;
 use onomy_test_lib::{
+    dockerfiles::dockerfile_onexd,
     onomy_std_init,
     super_orchestrator::{
         sh,

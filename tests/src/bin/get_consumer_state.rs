@@ -3,6 +3,7 @@
 //! the --genesis-path directory before running) with the partial
 //! genesis contents with consumer state inserted
 
+use onomy_test_lib::dockerfiles::dockerfile_onomyd;
 #[rustfmt::skip]
 /*
 e.x.
@@ -11,7 +12,6 @@ cargo r --bin get_consumer_state -- --proposal-path ./../environments/testnet/on
 
 */
 
-use common::dockerfile_onomyd;
 use onomy_test_lib::{
     cosmovisor::sh_cosmovisor,
     onomy_std_init,

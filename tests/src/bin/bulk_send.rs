@@ -6,12 +6,13 @@ use std::{cmp::min, time::Duration};
 use common::{
     container_runner,
     contest::{get_txs, Record},
-    dockerfile_onexd, get_private_key,
+    get_private_key,
 };
 use deep_space::{Address, Coin};
 use log::info;
 use onomy_test_lib::{
     cosmovisor::{cosmovisor_get_addr, sh_cosmovisor},
+    dockerfiles::dockerfile_onexd,
     onomy_std_init,
     super_orchestrator::{
         stacked_errors::{ensure, ensure_eq, Error, Result, StackableErr},

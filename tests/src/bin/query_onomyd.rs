@@ -1,6 +1,7 @@
 //! Query onomyd, use auto_exec_i to get into the container and issue
 //! `cosmovisor` commands
 
+use onomy_test_lib::dockerfiles::dockerfile_onomyd;
 #[rustfmt::skip]
 /*
 e.x.
@@ -11,7 +12,7 @@ cargo r --bin query_onomyd -- --mnemonic-path ./../testnet_dealer_mnemonic.txt -
 cargo r --bin auto_exec_i -- --container-name onomyd
 
 */
-use common::dockerfile_onomyd;
+
 use onomy_test_lib::{
     cosmovisor::sh_cosmovisor,
     onomy_std_init,

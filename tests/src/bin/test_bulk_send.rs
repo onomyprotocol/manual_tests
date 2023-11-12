@@ -5,12 +5,13 @@ use std::{cmp::min, time::Duration};
 use common::{
     container_runner,
     contest::{get_txs, Record},
-    dockerfile_onomyd, get_private_key,
+    get_private_key,
 };
 use deep_space::{Address, Coin};
 use log::info;
 use onomy_test_lib::{
     cosmovisor::{cosmovisor_get_addr, cosmovisor_start},
+    dockerfiles::dockerfile_onomyd,
     onomy_std_init,
     setups::{onomyd_setup, CosmosSetupOptions},
     super_orchestrator::{

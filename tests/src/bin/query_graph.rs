@@ -7,11 +7,10 @@
 use std::time::Duration;
 
 use clap::Parser;
-use common::{DOWNLOAD_ONEXD, ONEXD_FH_VERSION};
 use log::info;
 use onomy_test_lib::{
     cosmovisor::{set_persistent_peers, set_pruning, sh_cosmovisor, sh_cosmovisor_no_debug},
-    dockerfiles::{COSMOVISOR, ONOMY_STD},
+    dockerfiles::{COSMOVISOR, DOWNLOAD_ONEXD, ONEXD_FH_VERSION, ONOMY_STD},
     onomy_std_init,
     super_orchestrator::{
         acquire_dir_path,

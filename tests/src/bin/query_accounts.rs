@@ -1,8 +1,9 @@
 //! temporary for querying accounts
 
-use common::{container_runner, dockerfile_onexd};
+use common::container_runner;
 use onomy_test_lib::{
     cosmovisor::{sh_cosmovisor, sh_cosmovisor_no_debug},
+    dockerfiles::dockerfile_onexd,
     onomy_std_init,
     super_orchestrator::{
         stacked_errors::{Error, Result, StackableErr},

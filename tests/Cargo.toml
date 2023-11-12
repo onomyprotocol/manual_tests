@@ -20,8 +20,8 @@ csv = "1.2"
 #deep_space = { path = "./../../deep_space" }
 deep_space = { git = "https://github.com/onomyprotocol/deep_space.git", rev = "5c6e354ef3f2c8bb0f5a8f64921dba47182aaec1" }
 log = "0.4"
-onomy_test_lib = { path = "./../../onomy_tests/onomy_test_lib" }
-#onomy_test_lib = { git = "https://github.com/pendulum-labs/onomy_tests", rev = "98d7da9b10c75efce12a0be97f3ae70c37fd3f61" }
+#onomy_test_lib = { path = "./../../onomy_tests/onomy_test_lib" }
+onomy_test_lib = { git = "https://github.com/pendulum-labs/onomy_tests", rev = "08143eb6f399470404515f7fd1d4b20b466b540c" }
 ripemd = "0.1"
 ron = "0.8"
 serde = "1.0"

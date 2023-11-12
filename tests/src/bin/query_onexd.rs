@@ -1,6 +1,7 @@
 //! Query onexd, use auto_exec_i to get into the container and issue
 //! `cosmovisor` commands
 
+use onomy_test_lib::dockerfiles::dockerfile_onexd;
 #[rustfmt::skip]
 /*
 e.x.
@@ -12,7 +13,6 @@ cargo r --bin auto_exec_i -- --container-name onexd
 
 */
 
-use common::dockerfile_onexd;
 use onomy_test_lib::{
     cosmovisor::{sh_cosmovisor, wait_for_num_blocks},
     onomy_std_init,
