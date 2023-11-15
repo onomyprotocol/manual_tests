@@ -67,7 +67,7 @@ async fn container_runner(args: &Args) -> Result<()> {
     FileOptions::copy(
         args.mnemonic_path
             .as_deref()
-            .stack_err(|| "need --mnemonic")?,
+            .stack_err(|| "need --mnemonic-path")?,
         "./tests/resources/tmp/mnemonic.txt",
     )
     .await
