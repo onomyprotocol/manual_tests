@@ -1,29 +1,43 @@
-//! not sure what I used this for
+//! Given an exported genesis of a provider, this translates the bonded amounts
+//! to `aonex` balances that will be put into a partial genesis without accounts
+//! to create the partial genesis
+//! 
+//! NOTE this will overwrite the file at `partial-genesis-path`, use source control
+
+/*
+e.x.
+
+cargo r --bin reparse_accounts -- --partial-genesis-without-accounts-path ./../environments/testnet/onex-testnet-3/partial-genesis-without-accounts.json --exported-genesis-path ./../../../Downloads/genesis-exported-testnet-master.json --partial-genesis-path ./../environments/testnet/onex-testnet-3/partial-genesis.json
+
+*/
 
 use std::collections::{btree_map::Entry, BTreeMap, HashSet};
 
+use clap::Parser;
 use common::MODULE_ACCOUNTS;
-use onomy_test_lib::{
-    onomy_std_init,
-    super_orchestrator::{
-        stacked_errors::{Result, StackableErr},
-        stacked_get, stacked_get_mut, FileOptions,
-    },
+use onomy_test_lib::super_orchestrator::{
+    stacked_errors::{Result, StackableErr},
+    stacked_get, stacked_get_mut, std_init, FileOptions,
 };
 use serde::ser::Serialize;
 use serde_json::{json, ser::PrettyFormatter, Serializer, Value};
 use u64_array_bigints::U256;
 
-/*const PROPOSAL: &str =
-include_str!("./../../../../environments/testnet/onex-testnet-3/genesis-proposal.json");*/
-const PARTIAL_GENESIS_WITHOUT_ACCOUNTS_PATH: &str =
-    "./../environments/testnet/onex-testnet-3/partial-genesis-without-accounts.json";
-const EXPORTED_GENESIS_PATH: &str = "./../../../Downloads/genesis-exported-testnet-master.json";
-const PARTIAL_GENESIS_PATH: &str = "./../environments/testnet/onex-testnet-3/partial-genesis.json";
+#[derive(Parser, Debug, Clone)]
+#[command(about)]
+struct Args {
+    #[arg(long)]
+    pub partial_genesis_without_accounts_path: String,
+    #[arg(long)]
+    pub exported_genesis_path: String,
+    #[arg(long)]
+    pub partial_genesis_path: String,
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let _args = onomy_std_init()?;
+    std_init()?;
+    let args = Args::parse();
     //let logs_dir = "./tests/logs";
 
     // must remove these from accounts
@@ -31,10 +45,10 @@ async fn main() -> Result<()> {
     let module_accounts: HashSet<&str> = module_accounts.iter().cloned().collect();
 
     let partial_genesis_without_accounts =
-        FileOptions::read_to_string(PARTIAL_GENESIS_WITHOUT_ACCOUNTS_PATH)
+        FileOptions::read_to_string(&args.partial_genesis_without_accounts_path)
             .await
             .stack()?;
-    let exported_genesis = FileOptions::read_to_string(EXPORTED_GENESIS_PATH)
+    let exported_genesis = FileOptions::read_to_string(&args.exported_genesis_path)
         .await
         .stack()?;
 
@@ -145,7 +159,7 @@ async fn main() -> Result<()> {
     genesis.serialize(&mut ser).stack()?;
     let genesis_s = String::from_utf8(genesis_s).stack()?;
 
-    FileOptions::write_str(PARTIAL_GENESIS_PATH, &genesis_s)
+    FileOptions::write_str(&args.partial_genesis_path, &genesis_s)
         .await
         .stack()?;
 
