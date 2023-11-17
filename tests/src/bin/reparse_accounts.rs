@@ -4,10 +4,11 @@
 //! 
 //! NOTE this will overwrite the file at `partial-genesis-path`, use source control
 
+#[rustfmt::skip]
 /*
 e.x.
 
-cargo r --bin reparse_accounts -- --partial-genesis-without-accounts-path ./../environments/testnet/onex-testnet-3/partial-genesis-without-accounts.json --exported-genesis-path ./../../../Downloads/genesis-exported-testnet-master.json --partial-genesis-path ./../environments/testnet/onex-testnet-3/partial-genesis.json
+cargo r --bin reparse_accounts -- --partial-genesis-without-accounts-path ./../environments/testnet/onex-testnet-4/partial-genesis-without-accounts.json --exported-genesis-path ./../../../Downloads/genesis-exported-testnet-master.json --partial-genesis-path ./../environments/testnet/onex-testnet-4/partial-genesis.json
 
 */
 
