@@ -13,7 +13,7 @@ use onomy_test_lib::{
     cosmovisor::{cosmovisor_get_addr, cosmovisor_start},
     dockerfiles::dockerfile_onomyd,
     onomy_std_init,
-    setups::{onomyd_setup, CosmosSetupOptions},
+    setups::{cosmovisor_setup, CosmosSetupOptions},
     super_orchestrator::{
         sh,
         stacked_errors::{ensure, ensure_eq, Error, Result, StackableErr},
@@ -51,10 +51,10 @@ async fn main() -> Result<()> {
 
 async fn onomyd_runner(args: &Args) -> Result<()> {
     let daemon_home = args.daemon_home.as_ref().stack()?;
-    let mut options = CosmosSetupOptions::new(daemon_home);
-    options.mnemonic = Some(MNEMONIC.to_owned());
+    let mut options = CosmosSetupOptions::onomy(daemon_home);
+    options.validator_mnemonic = Some(MNEMONIC.to_owned());
     options.onex_testnet_amounts = true;
-    onomyd_setup(options).await.stack()?;
+    cosmovisor_setup(options).await.stack()?;
 
     let mut cosmovisor_runner = cosmovisor_start("onomyd_runner.log", None).await.stack()?;
 

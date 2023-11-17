@@ -22,7 +22,7 @@ deep_space = { git = "https://github.com/onomyprotocol/deep_space.git", rev = "5
 lazy_static = "1"
 log = "0.4"
 #onomy_test_lib = { path = "./../../onomy_tests/onomy_test_lib" }
-onomy_test_lib = { git = "https://github.com/pendulum-labs/onomy_tests", rev = "41af67402dd5f087bb46c36ccbaf2d0e3e1fe28f" }
+onomy_test_lib = { git = "https://github.com/pendulum-labs/onomy_tests", rev = "8a7948980b8d83c0f55634e98a286550fc80feee" }
 ripemd = "0.1"
 ron = "0.8"
 serde = "1.0"
