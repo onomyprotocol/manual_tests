@@ -125,7 +125,20 @@ async fn main() -> Result<()> {
         }
     }
 
-    for (address, allocation) in allocations {
+    // alternatively, the partial without accounts can have some accounts and bank balances with desired customization
+
+    // FIXME get the final address
+    // special addresses excluded from the vesting schedule or minimum
+    let base_account_addresses = ["onomy1nqx3cwqzp5ejk4yea6a6x8thman6epthsqkau3"];
+
+    let mut base_account_allocations = BTreeMap::<String, u128>::new();
+
+    for address in base_account_addresses {
+        let balance = allocations.remove(address).unwrap();
+        base_account_allocations.insert(address.to_string(), balance);
+    }
+
+    for (address, allocation) in base_account_allocations {
         let allocation = allocation.to_string();
         stacked_get_mut!(genesis["app_state"]["auth"]["accounts"])
             .as_array_mut()
@@ -151,6 +164,64 @@ async fn main() -> Result<()> {
                         "amount": allocation
                     }
                 ]
+                }
+            ));
+    }
+
+    // Exclude accounts with bonded amounts less than 100 NOM
+    allocations.retain(|_, amount| {*amount > 100_000000000000000000});
+
+    // genesis time in UNIX time in seconds
+    let start_time: u64 = 1701052895;
+    // 90 days between each 1/8th vesting
+    let period: u64 = 24 * 3600 * 90;
+    let periods: u64 = 8;
+    let end_time = start_time + (period * periods);
+
+    let start_time = format!("{start_time}");
+    let end_time = format!("{end_time}");
+    let period = format!("{period}");
+
+    // vesting
+    for (address, allocation) in allocations {
+        let allocation_per_period = allocation / u128::from(periods);
+        let mut vesting_periods = vec![];
+        for _ in 0..periods {
+            vesting_periods.push(json!({
+                "length": period,
+                "amount": [
+                    {
+                        "denom": "aonex",
+                        "amount": allocation_per_period.to_string()
+                    }
+                ]
+            }));
+        }
+        stacked_get_mut!(genesis["app_state"]["auth"]["accounts"])
+            .as_array_mut()
+            .stack()?
+            .push(json!(
+                {
+                    "@type": "/cosmos.vesting.v1beta1.PeriodicVestingAccount",
+                    "base_vesting_account": {
+                        "base_account": {
+                            "address": address,
+                            "pub_key": null,
+                            "account_number": "0",
+                            "sequence": "0"
+                        },
+                        "original_vesting": [
+                            {
+                                "denom": "anom",
+                                "amount": "0"
+                            }
+                        ],
+                        "delegated_free": [],
+                        "delegated_vesting": [],
+                        "end_time": end_time
+                    },
+                    "start_time": start_time,
+                    "vesting_periods": vesting_periods
                 }
             ));
     }
