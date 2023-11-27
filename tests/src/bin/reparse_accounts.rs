@@ -1,8 +1,9 @@
 //! Given an exported genesis of a provider, this translates the bonded amounts
 //! to `aonex` balances that will be put into a partial genesis without accounts
 //! to create the partial genesis
-//! 
-//! NOTE this will overwrite the file at `partial-genesis-path`, use source control
+//!
+//! NOTE this will overwrite the file at `partial-genesis-path`, use source
+//! control
 
 #[rustfmt::skip]
 /*
