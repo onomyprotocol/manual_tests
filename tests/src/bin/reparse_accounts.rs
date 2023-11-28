@@ -125,7 +125,8 @@ async fn main() -> Result<()> {
         }
     }
 
-    // alternatively, the partial without accounts can have some accounts and bank balances with desired customization
+    // alternatively, the partial without accounts can have some accounts and bank
+    // balances with desired customization
 
     // FIXME get the final address
     // special addresses excluded from the vesting schedule or minimum
@@ -169,7 +170,7 @@ async fn main() -> Result<()> {
     }
 
     // Exclude accounts with bonded amounts less than 100 NOM
-    allocations.retain(|_, amount| {*amount > 100_000000000000000000});
+    allocations.retain(|_, amount| *amount > 100_000000000000000000);
 
     // genesis time in UNIX time in seconds
     let start_time: u64 = 1701052895;
