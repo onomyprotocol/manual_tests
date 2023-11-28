@@ -125,17 +125,24 @@ async fn main() -> Result<()> {
         }
     }
 
+    let result_denom = "aonex";
+
+    // for manual testing
+    /*allocations.insert(
+        "onomy1y3c6q58vvuxr5tcmesay74wvhrey3pqv8g6y3r".to_owned(),
+        1000000000000000000000,
+    );*/
+
     // alternatively, the partial without accounts can have some accounts and bank
     // balances with desired customization
 
-    // FIXME get the final address
     // special addresses excluded from the vesting schedule or minimum
-    let base_account_addresses = ["onomy1nqx3cwqzp5ejk4yea6a6x8thman6epthsqkau3"];
+    let base_account_addresses: &[&str] = &[];
 
     let mut base_account_allocations = BTreeMap::<String, u128>::new();
 
     for address in base_account_addresses {
-        let balance = allocations.remove(address).unwrap();
+        let balance = allocations.remove(*address).unwrap();
         base_account_allocations.insert(address.to_string(), balance);
     }
 
@@ -161,7 +168,7 @@ async fn main() -> Result<()> {
                 "address": address,
                 "coins": [
                     {
-                        "denom": "aonex",
+                        "denom": result_denom,
                         "amount": allocation
                     }
                 ]
@@ -172,8 +179,19 @@ async fn main() -> Result<()> {
     // Exclude accounts with bonded amounts less than 100 NOM
     allocations.retain(|_, amount| *amount > 100_000000000000000000);
 
+    #[rustfmt::skip]
+    /*
+    cosmovisor run tx bank send special onomy183l3wc5xfl9k7qp8akhvnd4qwm9gmz0afmw2kp 125000000000000000000aonex -y -b block --from special --fees 1000000ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513
+
+    cosmovisor run query bank balances onomy1y3c6q58vvuxr5tcmesay74wvhrey3pqv8g6y3r
+
+    cosmovisor run query account onomy1y3c6q58vvuxr5tcmesay74wvhrey3pqv8g6y3r
+
+    cosmovisor run tx staking delegate onomyvaloper1yks83spz6lvrrys8kh0untt22399tskkx4l7y6 125000000000000000000aonex --from special -y -b block --fees 1000000ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513
+    */
+
     // genesis time in UNIX time in seconds
-    let start_time: u64 = 1701052895;
+    let start_time: u64 = 1701207100;
     // 90 days between each 1/8th vesting
     let period: u64 = 24 * 3600 * 90;
     let periods: u64 = 8;
@@ -183,16 +201,23 @@ async fn main() -> Result<()> {
     let end_time = format!("{end_time}");
     let period = format!("{period}");
 
+    // how the vesting periods work are that a number of coins are only allowed to
+    // be sent to other accounts at the end of the period the `start_time` should be
+    // set to one period before genesis time if the first period should be unlocked
+    // at genesis time.
+
     // vesting
     for (address, allocation) in allocations {
         let allocation_per_period = allocation / u128::from(periods);
+        let total_vesting = allocation_per_period * u128::from(periods);
+        let total_vesting = format!("{total_vesting}");
         let mut vesting_periods = vec![];
         for _ in 0..periods {
             vesting_periods.push(json!({
                 "length": period,
                 "amount": [
                     {
-                        "denom": "aonex",
+                        "denom": result_denom,
                         "amount": allocation_per_period.to_string()
                     }
                 ]
@@ -213,8 +238,8 @@ async fn main() -> Result<()> {
                         },
                         "original_vesting": [
                             {
-                                "denom": "anom",
-                                "amount": "0"
+                                "denom": result_denom,
+                                "amount": total_vesting
                             }
                         ],
                         "delegated_free": [],
@@ -223,6 +248,20 @@ async fn main() -> Result<()> {
                     },
                     "start_time": start_time,
                     "vesting_periods": vesting_periods
+                }
+            ));
+        stacked_get_mut!(genesis["app_state"]["bank"]["balances"])
+            .as_array_mut()
+            .stack()?
+            .push(json!(
+                {
+                "address": address,
+                "coins": [
+                    {
+                        "denom": result_denom,
+                        "amount": total_vesting
+                    }
+                ]
                 }
             ));
     }
