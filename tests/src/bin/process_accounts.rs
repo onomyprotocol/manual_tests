@@ -9,7 +9,7 @@
 /*
 e.x.
 
-cargo r --bin reparse_accounts -- --partial-genesis-without-accounts-path ./../environments/testnet/onex-testnet-4/partial-genesis-without-accounts.json --exported-genesis-path ./../../../Downloads/genesis-exported-testnet-master.json --partial-genesis-path ./../environments/testnet/onex-testnet-4/partial-genesis.json
+cargo r --bin process_accounts -- --partial-genesis-without-accounts-path ./../environments/testnet/onex-testnet-4/partial-genesis-without-accounts.json --exported-genesis-path ./../../../Downloads/genesis-exported-testnet-master.json --partial-genesis-path ./../environments/testnet/onex-testnet-4/partial-genesis.json
 
 */
 
