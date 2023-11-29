@@ -50,7 +50,7 @@ async fn main() -> Result<()> {
         // pass on these args to the test runner
         if let Some(ref grpc) = args.grpc {
             runner_args.push("--grpc");
-            runner_args.push(&grpc);
+            runner_args.push(grpc);
         }
 
         let mut containers = vec![];
@@ -79,7 +79,7 @@ async fn main() -> Result<()> {
 
 async fn runner(args: &Args) -> Result<()> {
     let contact = deep_space::Contact::new(
-        &args.grpc.as_deref().stack_err(|| "need `--grpc`")?,
+        args.grpc.as_deref().stack_err(|| "need `--grpc`")?,
         TIMEOUT,
         "onomy",
     )

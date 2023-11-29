@@ -9,7 +9,7 @@
 /*
 e.x.
 
-cargo r --bin process_accounts -- --partial-genesis-without-accounts-path ./../environments/testnet/onex-testnet-4/partial-genesis-without-accounts.json --exported-genesis-path ./../../../Downloads/genesis-exported-testnet-master.json --partial-genesis-path ./../environments/testnet/onex-testnet-4/partial-genesis.json
+cargo r --bin process_accounts --release -- --partial-genesis-without-accounts-path ./../environments/testnet/onex-testnet-4/partial-genesis-without-accounts.json --exported-genesis-path ./../../../Downloads/genesis-exported-testnet-master.json --partial-genesis-path ./../environments/testnet/onex-testnet-4/partial-genesis.json
 
 */
 
@@ -130,7 +130,7 @@ async fn main() -> Result<()> {
     // for manual testing
     /*allocations.insert(
         "onomy1y3c6q58vvuxr5tcmesay74wvhrey3pqv8g6y3r".to_owned(),
-        1000000000000000000000,
+        1000000000000000000077,
     );*/
 
     // alternatively, the partial without accounts can have some accounts and bank
@@ -181,20 +181,21 @@ async fn main() -> Result<()> {
 
     #[rustfmt::skip]
     /*
-    cosmovisor run tx bank send special onomy183l3wc5xfl9k7qp8akhvnd4qwm9gmz0afmw2kp 125000000000000000000aonex -y -b block --from special --fees 1000000ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513
+    cosmovisor run tx bank send special onomy183l3wc5xfl9k7qp8akhvnd4qwm9gmz0afmw2kp 166666666666666666678aonex -y -b block --from special --fees 1000000ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513
 
     cosmovisor run query bank balances onomy1y3c6q58vvuxr5tcmesay74wvhrey3pqv8g6y3r
 
     cosmovisor run query account onomy1y3c6q58vvuxr5tcmesay74wvhrey3pqv8g6y3r
 
-    cosmovisor run tx staking delegate onomyvaloper1yks83spz6lvrrys8kh0untt22399tskkx4l7y6 125000000000000000000aonex --from special -y -b block --fees 1000000ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513
+    cosmovisor run tx staking delegate onomyvaloper1yks83spz6lvrrys8kh0untt22399tskkx4l7y6 500000000000000000034aonex --from special -y -b block --gas 300000 --fees 10000000ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513
     */
 
     // genesis time in UNIX time in seconds
-    let start_time: u64 = 1701207100;
-    // 90 days between each 1/8th vesting
-    let period: u64 = 24 * 3600 * 90;
-    let periods: u64 = 8;
+    let start_time: u64 = 1701291750;
+    // 30 days between each 1/12th vesting
+    let period: u64 = 10; //24 * 3600 * 30;
+    let periods: u64 = 12;
+    assert!(periods >= 2);
     let end_time = start_time + (period * periods);
 
     let start_time = format!("{start_time}");
@@ -202,23 +203,31 @@ async fn main() -> Result<()> {
     let period = format!("{period}");
 
     // how the vesting periods work are that a number of coins are only allowed to
-    // be sent to other accounts at the end of the period the `start_time` should be
-    // set to one period before genesis time if the first period should be unlocked
-    // at genesis time.
+    // be sent to other accounts at the end of the period. The below configuration
+    // is set to have the first 1/periods amound unlocked at genesis time by having
+    // `periods - 1` actual vesting periods, and subtracting one vesting period's
+    // worth from the `original_vesting`, so that there is some unlocked from the
+    // balance
 
     // vesting
     for (address, allocation) in allocations {
         let allocation_per_period = allocation / u128::from(periods);
-        let total_vesting = allocation_per_period * u128::from(periods);
-        let total_vesting = format!("{total_vesting}");
+        // there is a slight error from the division, so we calculate an exact amount.
+        // The most important thing is that the original_vesting is not less than the
+        // sum of the period amounts.
+        let total_balance = allocation_per_period * u128::from(periods);
+        let original_vesting = allocation_per_period * u128::from(periods - 1);
+        let total_balance = format!("{total_balance}");
+        let original_vesting = format!("{original_vesting}");
+        let allocation_per_period = format!("{allocation_per_period}");
         let mut vesting_periods = vec![];
-        for _ in 0..periods {
+        for _ in 0..(periods - 1) {
             vesting_periods.push(json!({
                 "length": period,
                 "amount": [
                     {
                         "denom": result_denom,
-                        "amount": allocation_per_period.to_string()
+                        "amount": allocation_per_period
                     }
                 ]
             }));
@@ -239,7 +248,7 @@ async fn main() -> Result<()> {
                         "original_vesting": [
                             {
                                 "denom": result_denom,
-                                "amount": total_vesting
+                                "amount": original_vesting
                             }
                         ],
                         "delegated_free": [],
@@ -259,7 +268,7 @@ async fn main() -> Result<()> {
                 "coins": [
                     {
                         "denom": result_denom,
-                        "amount": total_vesting
+                        "amount": total_balance
                     }
                 ]
                 }
