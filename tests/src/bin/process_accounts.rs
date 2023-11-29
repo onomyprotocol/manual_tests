@@ -193,7 +193,7 @@ async fn main() -> Result<()> {
     // genesis time in UNIX time in seconds
     let start_time: u64 = 1701291750;
     // 30 days between each 1/12th vesting
-    let period: u64 = 10; //24 * 3600 * 30;
+    let period: u64 = 24 * 3600 * 30;
     let periods: u64 = 12;
     assert!(periods >= 2);
     let end_time = start_time + (period * periods);
