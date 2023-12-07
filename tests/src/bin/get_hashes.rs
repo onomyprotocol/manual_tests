@@ -4,7 +4,7 @@
 /*
 e.x.
 
-cargo r --bin get_hashes -- --genesis-path ./../environments/testnet/onex-testnet-3/genesis.json
+cargo r --bin get_hashes -- --genesis-path ./../environments/testnet/onex-testnet-4/partial-genesis.json
 
 */
 
