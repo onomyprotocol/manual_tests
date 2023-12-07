@@ -9,7 +9,7 @@
 /*
 e.x.
 
-cargo r --bin process_accounts --release -- --partial-genesis-without-accounts-path ./../environments/testnet/onex-testnet-4/partial-genesis-without-accounts.json --exported-genesis-path ./../../../Downloads/genesis-exported-testnet-master.json --partial-genesis-path ./../environments/testnet/onex-testnet-4/partial-genesis.json
+cargo r --bin process_accounts --release -- --partial-genesis-without-accounts-path ./../environments/testnet/onex-testnet-4/partial-genesis-without-accounts.json --exported-genesis-path ./../../../Downloads/onomy-testnet-export-12-6.json --partial-genesis-path ./../environments/testnet/onex-testnet-4/partial-genesis.json
 
 */
 
@@ -190,8 +190,18 @@ async fn main() -> Result<()> {
     cosmovisor run tx staking delegate onomyvaloper1yks83spz6lvrrys8kh0untt22399tskkx4l7y6 500000000000000000034aonex --from special -y -b block --gas 300000 --fees 10000000ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513
     */
 
+    let local_target_time: chrono::DateTime<chrono_tz::Tz>  = chrono::TimeZone::with_ymd_and_hms(&chrono_tz::US::Central, 2023, 12, 11, 10, 0, 0)
+        .single()
+        .stack()?;
+    let utc_target_time = local_target_time.with_timezone(&chrono::Utc);
+    println!(
+        "genesis time: {}",
+        utc_target_time.to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+    );
+
     // genesis time in UNIX time in seconds
-    let start_time: u64 = 1701291750;
+    let start_time = u64::try_from(utc_target_time.timestamp()).unwrap();
+    println!("UNIX genesis time: {}", start_time);
     // 30 days between each 1/12th vesting
     let period: u64 = 24 * 3600 * 30;
     let periods: u64 = 12;
