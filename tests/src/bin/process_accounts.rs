@@ -208,6 +208,9 @@ async fn main() -> Result<()> {
     assert!(periods >= 2);
     let end_time = start_time + (period * periods);
 
+    println!("length of each vesting period in seconds: {}", period);
+    println!("number of vesting periods: {}", periods);
+
     let start_time = format!("{start_time}");
     let end_time = format!("{end_time}");
     let period = format!("{period}");
