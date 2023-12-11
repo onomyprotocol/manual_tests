@@ -190,7 +190,7 @@ async fn main() -> Result<()> {
     cosmovisor run tx staking delegate onomyvaloper1yks83spz6lvrrys8kh0untt22399tskkx4l7y6 500000000000000000034aonex --from special -y -b block --gas 300000 --fees 10000000ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513
     */
 
-    let local_target_time: chrono::DateTime<chrono_tz::Tz>  = chrono::TimeZone::with_ymd_and_hms(&chrono_tz::US::Central, 2023, 12, 11, 10, 0, 0)
+    let local_target_time: chrono::DateTime<chrono_tz::Tz>  = chrono::TimeZone::with_ymd_and_hms(&chrono_tz::US::Central, 2023, 12, 12, 10, 0, 0)
         .single()
         .stack()?;
     let utc_target_time = local_target_time.with_timezone(&chrono::Utc);

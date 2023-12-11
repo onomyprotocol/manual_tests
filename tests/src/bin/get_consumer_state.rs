@@ -1,14 +1,14 @@
 //! acquires consumer state from the provider for use in completing the consumer
 //! genesis, automatically overwriting the complete genesis (please commit in
-//! the --genesis-path directory before running) with the partial
-//! genesis contents with consumer state inserted
+//! the --genesis-path directory before running, make an empty file if needed)
+//! with the partial genesis contents with consumer state inserted
 
 use onomy_test_lib::dockerfiles::dockerfile_onomyd;
 #[rustfmt::skip]
 /*
 e.x.
 
-cargo r --bin get_consumer_state -- --proposal-path ./../environments/testnet/onex-testnet-3/genesis-proposal.json --partial-genesis-path ./../environments/testnet/onex-testnet-3/partial-genesis.json --genesis-path ./../environments/testnet/onex-testnet-3/genesis.json --node http://34.28.227.180:26657
+cargo r --bin get_consumer_state -- --proposal-path ./../environments/testnet/onex-testnet-4/genesis-proposal.json --partial-genesis-path ./../environments/testnet/onex-testnet-4/partial-genesis.json --genesis-path ./../environments/testnet/onex-testnet-4/genesis.json --node http://34.145.158.212:26657
 
 */
 
@@ -28,7 +28,7 @@ use serde::ser::Serialize;
 use serde_json::{ser::PrettyFormatter, Serializer, Value};
 
 const ONOMY_CHAIN_ID: &str = "onomy-testnet-1";
-const CONSUMER_CHAIN_ID: &str = "onex-testnet-3";
+const CONSUMER_CHAIN_ID: &str = "onex-testnet-4";
 
 #[tokio::main]
 async fn main() -> Result<()> {

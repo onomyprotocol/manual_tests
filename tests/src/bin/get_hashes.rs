@@ -1,6 +1,7 @@
 //! get the hash of a genesis file and a binary in the logs directory (please
 //! refactor if necessary)
 
+#[rustfmt::skip]
 /*
 e.x.
 
