@@ -93,7 +93,7 @@ async fn main() -> Result<()> {
 }
 
 async fn onexd_runner(args: &Args) -> Result<()> {
-    // curl -s http://180.131.222.73:26756/consensus_state
+    // curl -s http://34.86.135.162:26657/consensus_state
     // /net_info
     // /validators
 
