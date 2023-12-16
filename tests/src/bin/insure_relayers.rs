@@ -46,15 +46,15 @@ lazy_static! {
                 "anom",
                 false,
             ),
-            vec!["07-tendermint-7".to_owned()],
+            vec!["07-tendermint-10".to_owned()],
         ),
         (
             HermesChainConfig::new(
-                "onex-testnet-3",
+                "onex-testnet-4",
                 "34.86.135.162",
                 "onomy",
                 true,
-                "anom",
+                "abtc",
                 false,
             ),
             vec!["07-tendermint-0".to_owned()],
