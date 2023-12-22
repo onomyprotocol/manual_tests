@@ -148,11 +148,7 @@ trust_threshold = { numerator = '1', denominator = '3' }
 id = 'osmosis-1'
 rpc_addr = 'https://osmosis-rpc.w3coins.io'
 grpc_addr = 'http://osmosis-grpc.w3coins.io:12590'
-event_source = {
-    mode = 'push',
-    url = 'ws://osmosis-rpc.w3coins.io/websocket',
-    batch_delay = '200ms'
-}
+event_source = { mode = 'push', url = 'ws://osmosis-rpc.w3coins.io/websocket', batch_delay = '200ms' }
 rpc_timeout = '15s'
 account_prefix = 'osmo'
 key_name = 'osmosis-1'
