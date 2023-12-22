@@ -37,17 +37,22 @@ lazy_static! {
         // mainnet TODO
 
         // testnet
-        (
-            HermesChainConfig::new(
+        {
+            let hostname = "34.145.158.212";
+            let mut config = HermesChainConfig::new(
                 "onomy-testnet-1",
-                "34.145.158.212",
+                hostname,
                 "onomy",
                 false,
                 "anom",
                 false,
-            ),
-            vec!["07-tendermint-10".to_owned()],
-        ),
+            );
+            config.grpc_addr = format!("http://{hostname}:9191");
+            (
+                config,
+                vec!["07-tendermint-10".to_owned()],
+            )
+        },
         (
             HermesChainConfig::new(
                 "onex-testnet-4",

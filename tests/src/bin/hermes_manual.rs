@@ -12,11 +12,9 @@ cargo r --bin auto_exec_i -- --container-name hermes
 
 */
 
-use lazy_static::lazy_static;
-use log::warn;
 use onomy_test_lib::{
     dockerfiles::dockerfile_hermes,
-    hermes::{hermes_start, sh_hermes, write_hermes_config, HermesChainConfig},
+    hermes::hermes_start,
     onomy_std_init,
     super_orchestrator::{
         docker::{Container, ContainerNetwork, Dockerfile},
@@ -228,7 +226,11 @@ async fn container_runner(args: &Args) -> Result<()> {
     let uuid = cn.uuid_as_string();
     cn.add_common_entrypoint_args(["--uuid", &uuid]);
 
-    FileOptions::write_str(&format!("{dockerfiles_dir}/dockerfile_resources/__tmp_hermes_config.toml"), &HERMES_CONFIG).await?;
+    FileOptions::write_str(
+        &format!("{dockerfiles_dir}/dockerfile_resources/__tmp_hermes_config.toml"),
+        HERMES_CONFIG,
+    )
+    .await?;
 
     cn.run_all(true).await.stack()?;
     cn.wait_with_timeout_all(true, TIMEOUT).await.stack()?;
