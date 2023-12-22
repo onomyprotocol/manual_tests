@@ -26,6 +26,7 @@ use onomy_test_lib::{
 };
 use tokio::time::sleep;
 
+#[rustfmt::skip]
 const HERMES_CONFIG: &str = r##"
 # The global section has parameters that apply globally to the relayer operation.
 [global]
