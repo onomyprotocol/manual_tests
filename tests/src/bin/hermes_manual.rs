@@ -146,9 +146,9 @@ trust_threshold = { numerator = '1', denominator = '3' }
 
 [[chains]]
 id = 'osmosis-1'
-rpc_addr = 'http://104.197.40.167:26657'
-grpc_addr = 'http://104.197.40.167:9090'
-event_source = { mode = 'push', url = 'ws://104.197.40.167:26657/websocket', batch_delay = '200ms' }
+rpc_addr = 'https://rpc-osmosis.ecostake.com'
+grpc_addr = 'http://osmosis-grpc.w3coins.io:12590'
+event_source = { mode = 'push', url = 'ws://rpc-osmosis.ecostake.com/websocket', batch_delay = '200ms' }
 rpc_timeout = '15s'
 account_prefix = 'osmo'
 key_name = 'osmosis-1'
