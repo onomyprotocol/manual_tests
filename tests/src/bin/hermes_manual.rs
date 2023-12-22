@@ -14,7 +14,7 @@ cargo r --bin auto_exec_i -- --container-name hermes
 
 use onomy_test_lib::{
     dockerfiles::dockerfile_hermes,
-    hermes::hermes_start,
+    hermes::{hermes_start, sh_hermes},
     onomy_std_init,
     super_orchestrator::{
         docker::{Container, ContainerNetwork, Dockerfile},
@@ -49,7 +49,7 @@ enabled = true
 refresh = true
 
 # Whether or not to enable misbehaviour detection for clients. [Default: true]
-misbehaviour = true
+misbehaviour = false
 
 # Specify the connections mode.
 [mode.connections]
@@ -146,9 +146,9 @@ trust_threshold = { numerator = '1', denominator = '3' }
 
 [[chains]]
 id = 'osmosis-1'
-rpc_addr = 'https://rpc-osmosis.ecostake.com'
+rpc_addr = 'https://osmosis-rpc.w3coins.io'
 grpc_addr = 'http://osmosis-grpc.w3coins.io:12590'
-event_source = { mode = 'push', url = 'ws://rpc-osmosis.ecostake.com/websocket', batch_delay = '200ms' }
+event_source = { mode = 'push', url = 'ws://osmosis-rpc.w3coins.io/websocket', batch_delay = '200ms' }
 rpc_timeout = '15s'
 account_prefix = 'osmo'
 key_name = 'osmosis-1'
@@ -249,14 +249,14 @@ async fn hermes_runner(_args: &Args) -> Result<()> {
         .stack()?;
 
     // add the chains
-    /*for (config, _) in HERMES_CONFIGS.iter() {
+    for id in ["onomy-mainnet-1", "osmosis-1"] {
         sh_hermes([format!(
             "keys add --chain {} --mnemonic-file /root/.hermes/dealer_mnemonic.txt",
-            config.chain_id
+            id
         )])
         .await
         .stack()?;
-    }*/
+    }
 
     let mut hermes_runner = hermes_start("/logs/hermes_ics_runner.log").await.stack()?;
     sleep(TIMEOUT).await;

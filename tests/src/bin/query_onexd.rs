@@ -26,7 +26,7 @@ use onomy_test_lib::{
 };
 use tokio::time::sleep;
 
-const CHAIN_ID: &str = "onex-testnet-3";
+const CHAIN_ID: &str = "onex-testnet-4";
 
 #[tokio::main]
 async fn main() -> Result<()> {
