@@ -9,7 +9,7 @@
 /*
 e.x.
 
-cargo r --bin process_accounts --release -- --partial-genesis-without-accounts-path ./../environments/testnet/onex-testnet-4/partial-genesis-without-accounts.json --exported-genesis-path ./../../../Downloads/onomy-testnet-export-12-6.json --partial-genesis-path ./../environments/testnet/onex-testnet-4/partial-genesis.json
+cargo r --bin process_accounts --release -- --partial-genesis-without-accounts-path ./../environments/mainnet/onex-mainnet/partial-genesis-without-accounts.json --exported-genesis-path ./../../../Downloads/mainnet-snapshot-for-onex.json --partial-genesis-path ./../environments/mainnet/onex-mainnet/partial-genesis.json
 
 */
 
@@ -125,6 +125,12 @@ async fn main() -> Result<()> {
         }
     }
 
+    let mut total_supply: u128 = allocations.values().sum();
+    println!(
+        "total supply: {total_supply} ({} * 10^18)",
+        total_supply / 1000000000000000000
+    );
+
     let result_denom = "aonex";
 
     // for manual testing
@@ -133,11 +139,28 @@ async fn main() -> Result<()> {
         1000000000000000000077,
     );*/
 
+    // for onex mainnet: special address with 5% of liquidity
+    let special = ((0.05f64 / 0.95f64) * (total_supply as f64)) as u128;
+    let any_already_inserted = allocations.insert(
+        "onomy1cn8dfn77allkgte2hdfcpsypmsasy3lzeq9kcj".to_owned(),
+        special,
+    );
+    assert!(any_already_inserted.is_none());
+    println!(
+        "special address: {special} ({} * 10^18)",
+        special / 1000000000000000000
+    );
+    total_supply += special;
+    println!(
+        "total supply with special address: {total_supply} ({} * 10^18)",
+        total_supply / 1000000000000000000
+    );
+
     // alternatively, the partial without accounts can have some accounts and bank
     // balances with desired customization
 
     // special addresses excluded from the vesting schedule or minimum
-    let base_account_addresses: &[&str] = &[];
+    let base_account_addresses: &[&str] = &["onomy1cn8dfn77allkgte2hdfcpsypmsasy3lzeq9kcj"];
 
     let mut base_account_allocations = BTreeMap::<String, u128>::new();
 
@@ -190,7 +213,7 @@ async fn main() -> Result<()> {
     cosmovisor run tx staking delegate onomyvaloper1yks83spz6lvrrys8kh0untt22399tskkx4l7y6 500000000000000000034aonex --from special -y -b block --gas 300000 --fees 10000000ibc/5872224386C093865E42B18BDDA56BCB8CDE1E36B82B391E97697520053B0513
     */
 
-    let local_target_time: chrono::DateTime<chrono_tz::Tz>  = chrono::TimeZone::with_ymd_and_hms(&chrono_tz::US::Central, 2023, 12, 12, 10, 0, 0)
+    let local_target_time: chrono::DateTime<chrono_tz::Tz>  = chrono::TimeZone::with_ymd_and_hms(&chrono_tz::US::Central, 2023, 12, 29, 10, 0, 0)
         .single()
         .stack()?;
     let utc_target_time = local_target_time.with_timezone(&chrono::Utc);

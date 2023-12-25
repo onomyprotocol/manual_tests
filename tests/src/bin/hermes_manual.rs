@@ -132,9 +132,9 @@ port = 3001
 
 [[chains]]
 id = 'onomy-mainnet-1'
-rpc_addr = 'http://35.224.118.71:26657'
-grpc_addr = 'http://35.224.118.71:9191'
-event_source = { mode = 'push', url = 'ws://35.224.118.71:26657/websocket', batch_delay = '200ms' }
+rpc_addr = 'http://34.28.250.29:26657'
+grpc_addr = 'http://34.28.250.29:9100'
+event_source = { mode = 'push', url = 'ws://34.28.250.29:26657/websocket', batch_delay = '200ms' }
 rpc_timeout = '15s'
 account_prefix = 'onomy'
 key_name = 'onomy-mainnet-1'

@@ -8,6 +8,8 @@ e.x.
 
 cargo r --bin query_onomyd -- --mnemonic-path ./../testnet_dealer_mnemonic.txt --node http://34.145.158.212:26657
 
+cargo r --bin query_onomyd -- --mnemonic-path ./../testnet_dealer_mnemonic.txt --node http://34.28.250.29:26657
+
 // in another terminal
 cargo r --bin auto_exec_i -- --container-name onomyd
 
@@ -26,7 +28,7 @@ use onomy_test_lib::{
 };
 use tokio::time::sleep;
 
-const CHAIN_ID: &str = "onomy-testnet-1";
+const CHAIN_ID: &str = "onomy-mainnet-1";
 
 #[tokio::main]
 async fn main() -> Result<()> {
