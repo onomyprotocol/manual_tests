@@ -42,8 +42,11 @@ use tokio::{fs, time::sleep};
 
 // the 8000 port is exposed
 
-const DEFAULT_GENESIS_PATH: &str = "./../environments/testnet/onex-testnet-3/genesis.json";
-const CHAIN_ID: &str = "onex-testnet-3";
+#[rustfmt::skip]
+/*
+cargo r --release --bin query_graph -- --consumer-id onex-testnet-4 --genesis-path ./../environments/testnet/onex-testnet-4/genesis.json --peer-info 643ba64d86533720e73578c34e9817f7961867bb@64.71.153.54:26756
+*/
+
 const BINARY_NAME: &str = "onexd";
 const BINARY_DIR: &str = ".onomy_onex";
 // time until the program ends after everything is deployed
@@ -117,18 +120,18 @@ RUN go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
 RUN npm install -g @graphprotocol/graph-cli
 
 # firehose
-RUN git clone --depth 1 --branch v0.6.0 https://github.com/figment-networks/firehose-cosmos
+RUN git clone --depth 1 --branch v0.7.1 https://github.com/figment-networks/firehose-cosmos
 # not working for me, too flaky
 #RUN cd /firehose-cosmos && make install
 ADD https://github.com/graphprotocol/firehose-cosmos/releases/download/v0.6.0/firecosmos_linux_amd64 /usr/bin/firecosmos
 RUN chmod +x /usr/bin/firecosmos
 
 # graph-node
-RUN git clone --depth 1 --branch v0.32.0 https://github.com/graphprotocol/graph-node
+RUN git clone --depth 1 --branch v0.33.0 https://github.com/graphprotocol/graph-node
 RUN cd /graph-node && cargo build --release -p graph-node
 
 # ipfs
-ADD https://dist.ipfs.tech/kubo/v0.23.0/kubo_v0.23.0_linux-amd64.tar.gz /tmp/kubo.tar.gz
+ADD https://dist.ipfs.tech/kubo/v0.25.0/kubo_v0.25.0_linux-amd64.tar.gz /tmp/kubo.tar.gz
 RUN cd /tmp && tar -xf /tmp/kubo.tar.gz && mv /tmp/kubo/ipfs /usr/bin/ipfs
 RUN ipfs init
 
@@ -212,7 +215,7 @@ async fn container_runner(args: &Args) -> Result<()> {
 
     // copy it into place for the test runner to use
     let genesis =
-        FileOptions::read_to_string(args.genesis_path.as_deref().unwrap_or(DEFAULT_GENESIS_PATH))
+        FileOptions::read_to_string(args.genesis_path.as_deref().expect("need --genesis-path"))
             .await
             .stack()?;
     FileOptions::write_str("./tests/resources/query_graph/__tmp_genesis.json", &genesis)
@@ -224,6 +227,10 @@ async fn container_runner(args: &Args) -> Result<()> {
     if let Some(ref peer_info) = args.peer_info {
         test_runner_args.push("--peer-info");
         test_runner_args.push(peer_info);
+    }
+    if let Some(ref consumer_id) = args.consumer_id {
+        test_runner_args.push("--consumer-id");
+        test_runner_args.push(&consumer_id);
     }
 
     // we use a normal onexd for the validator full node, but use the `-fh` version
@@ -269,6 +276,7 @@ async fn container_runner(args: &Args) -> Result<()> {
 
 async fn test_runner(args: &Args) -> Result<()> {
     let uuid = &args.uuid;
+    let chain_id = args.consumer_id.as_deref().expect("need --consumer-id");
     let firehose_err_log = FileOptions::write2("/logs", "firehose_err.log");
     let firehose_std_log = FileOptions::write2("/logs", "firehose_std.log");
     let ipfs_log = FileOptions::write2("/logs", "ipfs.log");
@@ -297,13 +305,13 @@ async fn test_runner(args: &Args) -> Result<()> {
         .stack()?;
 
     // it seems to be ok to do this on every run
-    sh_cosmovisor(["config chain-id --home /firehose", CHAIN_ID])
+    sh_cosmovisor(["config chain-id --home /firehose", chain_id])
         .await
         .stack()?;
     sh_cosmovisor(["config keyring-backend test --home /firehose"])
         .await
         .stack()?;
-    sh_cosmovisor_no_debug(["init --overwrite --home /firehose", CHAIN_ID])
+    sh_cosmovisor_no_debug(["init --overwrite --home /firehose", chain_id])
         .await
         .stack()?;
     // turn off pruning
