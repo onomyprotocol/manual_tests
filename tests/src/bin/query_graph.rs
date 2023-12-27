@@ -31,6 +31,8 @@ use tokio::{fs, time::sleep};
 // we use a normal onexd for the validator full node, but use the `-fh` version
 // for the full node that indexes for firehose
 
+// Pass `--consumer-id ...` for the chain ID
+
 // Pass `--peer-info ...` to select the peer for the firehose node to use.
 // It should look like
 // "e7ea2a55be91e35f5cf41febb60d903ed2d07fea@34.86.135.162:26656"
