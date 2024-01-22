@@ -232,7 +232,7 @@ async fn container_runner(args: &Args) -> Result<()> {
     }
     if let Some(ref consumer_id) = args.consumer_id {
         test_runner_args.push("--consumer-id");
-        test_runner_args.push(&consumer_id);
+        test_runner_args.push(consumer_id);
     }
 
     // we use a normal onexd for the validator full node, but use the `-fh` version
